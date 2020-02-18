@@ -4,8 +4,7 @@ package com.vonchange.jdbc.abstractjdbc.util;
 import com.vonchange.jdbc.abstractjdbc.util.sql.OrmUtil;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
-import jodd.bean.BeanUtil;
-import jodd.bean.BeanUtilBean;
+import com.vonchange.mybatis.config.Constant;
 
 import javax.persistence.Column;
 import java.beans.BeanInfo;
@@ -64,8 +63,7 @@ public class ConvertMap {
                 }
                 //转换类型
                 value= ConvertUtil.toObject(value,propertyType);
-                BeanUtil beanUtil = new BeanUtilBean();
-                beanUtil.setProperty(entity, propertyName, value);
+                Constant.BeanUtils.setProperty(entity, propertyName, value);
             }
         }
         return entity;

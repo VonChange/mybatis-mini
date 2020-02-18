@@ -16,39 +16,11 @@
 
 package com.vonchange.jdbc.abstractjdbc.template;
 
-import com.vonchange.jdbc.abstractjdbc.util.sql.SqlCommentUtil;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.SQLWarningException;
-import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
-import org.springframework.jdbc.core.ArgumentTypePreparedStatementSetter;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.BatchUpdateUtils;
-import org.springframework.jdbc.core.CallableStatementCallback;
-import org.springframework.jdbc.core.CallableStatementCreator;
-import org.springframework.jdbc.core.ColumnMapRowMapper;
-import org.springframework.jdbc.core.ConnectionCallback;
-import org.springframework.jdbc.core.InterruptibleBatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.ParameterDisposer;
-import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
-import org.springframework.jdbc.core.PreparedStatementCallback;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.PreparedStatementSetter;
-import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.core.ResultSetSupportingSqlParameter;
-import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.RowMapperResultSetExtractor;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.jdbc.core.SqlOutParameter;
-import org.springframework.jdbc.core.SqlParameter;
-import org.springframework.jdbc.core.SqlProvider;
-import org.springframework.jdbc.core.SqlReturnResultSet;
-import org.springframework.jdbc.core.SqlReturnUpdateCount;
-import org.springframework.jdbc.core.SqlRowSetResultSetExtractor;
-import org.springframework.jdbc.core.StatementCallback;
+import org.springframework.jdbc.core.*;
 import org.springframework.jdbc.datasource.ConnectionProxy;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.support.JdbcAccessor;
@@ -65,21 +37,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.sql.BatchUpdateException;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 
 /**
  * <b>This is the central class in the JDBC core package.</b>
@@ -1649,13 +1608,13 @@ public class YhJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		}
 
 		public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-			//方言
+			/*//方言
 			String dialog = SqlCommentUtil.getDialect(this.sql);
 			if(dialog.equals(SqlCommentUtil.Dialect.ORACLE)){
-				//@TODO 暂时写死  有变动 从sql注释里  定义 获取
+				//  暂时写死  有变动 从sql注释里  定义 获取
 				//,  new String[]{"ID"} ,  new String[]{"id","code_no"}
 				return con.prepareStatement(this.sql, new String[]{"ID"});
-			}
+			}*/
 			return con.prepareStatement(this.sql,  Statement.RETURN_GENERATED_KEYS);
 		}
 		public String getSql() {

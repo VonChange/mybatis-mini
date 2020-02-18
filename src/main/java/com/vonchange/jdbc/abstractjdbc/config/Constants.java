@@ -7,6 +7,7 @@ package com.vonchange.jdbc.abstractjdbc.config;
  *
  */
 public class Constants {
+
 	/**
 	 * mardown 配置里的信息
 	 */

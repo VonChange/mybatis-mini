@@ -8,7 +8,7 @@ import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.JoinTable;
 import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.MemTable;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
-import com.vonchange.mybatis.tpl.exception.MyRuntimeException;
+import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 import jodd.util.StringUtil;
 
 import java.util.Map;
@@ -23,11 +23,11 @@ public class MarkdownDataUtil{
         JoinTable joinTable= new JoinTable();
         String sql=getSql(markdownDTO,id);
         if(StringUtils.isBlank(sql)){
-            throw  new MyRuntimeException(markdownDTO.getId()+notFindIdMsg+ Constants.Markdown.TABLE+id);
+            throw  new MybatisMinRuntimeException(markdownDTO.getId()+notFindIdMsg+ Constants.Markdown.TABLE+id);
         }
         Map<String,Object> data= markdownDTO.getJsonMap().get(Constants.Markdown.JSON+id);
         if(null==data){
-            throw  new MyRuntimeException(markdownDTO.getId()+notFindIdMsg+Constants.Markdown.JSON+id);
+            throw  new MybatisMinRuntimeException(markdownDTO.getId()+notFindIdMsg+Constants.Markdown.JSON+id);
         }
         String js=markdownDTO.getContentMap().get(Constants.Markdown.JS+id);
         if(!StringUtil.isBlank(js)){
@@ -43,7 +43,7 @@ public class MarkdownDataUtil{
         MemTable memTable = new MemTable();
         String table=markdownDTO.getContentMap().get(Constants.Markdown.TABLE+id);
         if(StringUtils.isBlank(table)){
-            throw  new MyRuntimeException(markdownDTO.getId()+notFindIdMsg+Constants.Markdown.TABLE+id);
+            throw  new MybatisMinRuntimeException(markdownDTO.getId()+notFindIdMsg+Constants.Markdown.TABLE+id);
         }
         Map<String,Object> data= markdownDTO.getJsonMap().get(Constants.Markdown.JSON+id);
         memTable.setSql(table);
@@ -54,7 +54,7 @@ public class MarkdownDataUtil{
         MemTable memTable = new MemTable();
         String view=markdownDTO.getContentMap().get(Constants.Markdown.VIEW+id);
         if(StringUtils.isBlank(view)){
-            throw  new MyRuntimeException(markdownDTO.getId()+notFindIdMsg+Constants.Markdown.VIEW+id);
+            throw  new MybatisMinRuntimeException(markdownDTO.getId()+notFindIdMsg+Constants.Markdown.VIEW+id);
         }
         Map<String,Object> data= markdownDTO.getJsonMap().get(Constants.Markdown.JSON+id);
         memTable.setSql(view);
@@ -99,7 +99,7 @@ public class MarkdownDataUtil{
     public static String getSql(MarkdownDTO markdownDTO,String id) {
         String sql =markdownDTO.getContentMap().get(Constants.Markdown.SQL+id);
         if(StringUtils.isBlank(sql)&&!StringUtils.endsWith(id, ConstantJdbc.COUNTFLAG)){
-            throw  new MyRuntimeException(markdownDTO.getId()+"查找不到该ID或ID内内容为空"+Constants.Markdown.SQL+id);
+            throw  new MybatisMinRuntimeException(markdownDTO.getId()+"查找不到该ID或ID内内容为空"+Constants.Markdown.SQL+id);
         }
         /* 支持{@sql */
         return MarkdownUtil.getSqlSpinner(markdownDTO,sql);

@@ -17,8 +17,8 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 
-import com.vonchange.mybatis.tpl.exception.MyRuntimeException;
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
+import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 
 import java.beans.IntrospectionException;
 import java.lang.reflect.InvocationTargetException;
@@ -52,10 +52,10 @@ public class BeanProcessor {
 		try {
 			return c.newInstance();
 		} catch (InstantiationException e) {
-			throw new MyRuntimeException("Cannot create " + c.getName() + ": " + e.getMessage());
+			throw new MybatisMinRuntimeException("Cannot create " + c.getName() + ": " + e.getMessage());
 
 		} catch (IllegalAccessException e) {
-			throw new MyRuntimeException("Cannot create " + c.getName() + ": " + e.getMessage());
+			throw new MybatisMinRuntimeException("Cannot create " + c.getName() + ": " + e.getMessage());
 		}
 	}
 

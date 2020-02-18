@@ -22,7 +22,7 @@ public class SqlCommentUtil {
         public static final  String ORACLE="oracle";
         public static final  String BASE="base";
     }
-    public static    String  getDialect(String sql){
+   /* public static    String  getDialect(String sql){
         if(sql.contains("@mysql")){
             return SqlCommentUtil.Dialect.MYSQL;
         }
@@ -33,5 +33,5 @@ public class SqlCommentUtil {
             return SqlCommentUtil.Dialect.BASE;
         }
         return   SqlCommentUtil.Dialect.MYSQL;
-    }
+    }*/
 }

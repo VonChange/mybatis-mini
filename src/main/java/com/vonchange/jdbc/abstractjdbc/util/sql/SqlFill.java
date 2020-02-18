@@ -12,22 +12,22 @@ import java.util.Locale;
  * @since 1.0
  */
 public class SqlFill {
-    public static String getParameterValue(Object obj) {
-        String value;
-        if (obj instanceof String) {
-            value = obj.toString().replaceAll("([';])+|(--)+", "");
-            value = "'" + value + "'";
-        } else if (obj instanceof Date) {
-            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-            value = "'" + formatter.format(obj) + "'";
-        } else {
-            if (obj != null) {
-                value = obj.toString();
-            } else {
-                value = "";
-            }
+
+    private static DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
+    private static String getParameterValue(Object obj) {
+        if(null==obj){
+            return "''";
         }
-        return value;
+        if(obj instanceof Date){
+            return "'" + formatter.format(obj) + "'";
+        }
+        if (obj instanceof String) {
+            //value = obj.toString().replaceAll("([';])+|(--)+", "");
+            // 排除恶意sql漏洞
+            //return "'" + obj.toString().replaceAll("([';])+|(--)+", "") + "'";
+            return "'" + obj.toString() + "'";
+        }
+        return "'" + obj.toString() + "'";
     }
 
     public static String fill(String source, Object[] params) {

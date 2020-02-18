@@ -6,7 +6,7 @@ import com.vonchange.jdbc.abstractjdbc.config.Constants;
 import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.MdWithInnerIdTemp;
 import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.SqlInfo;
 import com.vonchange.mybatis.common.util.StringUtils;
-import com.vonchange.mybatis.tpl.exception.MyRuntimeException;
+import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 import jodd.io.FileUtil;
 import jodd.util.StringUtil;
 import org.slf4j.Logger;
@@ -249,7 +249,7 @@ public class MarkdownUtil {
 
         String[] sqlIds = StringUtil.split(sqlId, ".");
         if (sqlIds.length < 2) {
-            throw  new MyRuntimeException("获取配置文件id有误:"+sqlId);
+            throw  new MybatisMinRuntimeException("获取配置文件id有误:"+sqlId);
         }
         StringBuilder packageName = new StringBuilder();
         for (int i = 0; i < sqlIds.length - 2; i++) {
