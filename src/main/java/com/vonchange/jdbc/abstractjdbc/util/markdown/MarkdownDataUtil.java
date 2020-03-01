@@ -1,11 +1,11 @@
-package com.vonchange.jdbc.abstractjdbc.util.mardown;
+package com.vonchange.jdbc.abstractjdbc.util.markdown;
 
 
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
 import com.vonchange.jdbc.abstractjdbc.config.Constants;
-import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.CacheInfo;
-import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.JoinTable;
-import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.MemTable;
+import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.CacheInfo;
+import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.JoinTable;
+import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.MemTable;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
 import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;

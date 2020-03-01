@@ -1,7 +1,7 @@
-package com.vonchange.jdbc.abstractjdbc.util.mardown.bean;
+package com.vonchange.jdbc.abstractjdbc.util.markdown.bean;
 
 
-import com.vonchange.jdbc.abstractjdbc.util.mardown.MarkdownDTO;
+import com.vonchange.jdbc.abstractjdbc.util.markdown.MarkdownDTO;
 
 /**
  * @author 冯昌义

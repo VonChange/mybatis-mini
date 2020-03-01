@@ -1,4 +1,4 @@
-package com.vonchange.jdbc.abstractjdbc.util.mardown;
+package com.vonchange.jdbc.abstractjdbc.util.markdown;
 
 import java.util.HashMap;
 import java.util.Map;

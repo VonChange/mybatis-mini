@@ -1,8 +1,8 @@
 package com.vonchange.jdbc.abstractjdbc.util.sql;
 
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 
 /**
  * 填充sql
@@ -12,14 +12,22 @@ import java.util.Locale;
  * @since 1.0
  */
 public class SqlFill {
+    private static ThreadLocal<DateFormat> threadFormater = new ThreadLocal<DateFormat>() {
+        @Override
+        protected DateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            //return  DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
+        }
+    };
 
-    private static DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
+    //private static DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
     private static String getParameterValue(Object obj) {
         if(null==obj){
             return "''";
         }
         if(obj instanceof Date){
-            return "'" + formatter.format(obj) + "'";
+
+            return "'" + threadFormater.get().format(obj) + "'";
         }
         if (obj instanceof String) {
             //value = obj.toString().replaceAll("([';])+|(--)+", "");

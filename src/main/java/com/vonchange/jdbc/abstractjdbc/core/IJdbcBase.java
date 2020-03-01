@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 import java.util.Map;
 
-public interface IJdbcCore {
+public interface IJdbcBase {
     Object insert(String sql, Object[] parameter);
 
     <T> List<T> queryList(Class<T> type, String sql, Object... args);

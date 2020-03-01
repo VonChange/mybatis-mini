@@ -1,4 +1,4 @@
-package com.vonchange.jdbc.abstractjdbc.util.mardown;
+package com.vonchange.jdbc.abstractjdbc.util.markdown;
 
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;

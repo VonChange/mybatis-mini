@@ -2,19 +2,18 @@ package com.vonchange.jdbc.abstractjdbc.core;
 
 
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
+import com.vonchange.jdbc.abstractjdbc.config.Constants;
 import com.vonchange.jdbc.abstractjdbc.dialect.Dialect;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractMapPageWork;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractPageWork;
+import com.vonchange.jdbc.abstractjdbc.model.DataSourceWrapper;
 import com.vonchange.jdbc.abstractjdbc.model.SqlFragment;
 import com.vonchange.jdbc.abstractjdbc.model.SqlParmeter;
 import com.vonchange.jdbc.abstractjdbc.parser.CountSqlParser;
 import com.vonchange.jdbc.abstractjdbc.template.YhJdbcTemplate;
 import com.vonchange.jdbc.abstractjdbc.util.SqlUtil;
-import com.vonchange.jdbc.abstractjdbc.util.mardown.MarkdownUtil;
-import com.vonchange.jdbc.abstractjdbc.util.mardown.bean.SqlInfo;
-import com.vonchange.jdbc.abstractjdbc.util.sql.AbstractSqlDialectUtil;
-import com.vonchange.jdbc.abstractjdbc.util.sql.OrmUtil;
-import com.vonchange.jdbc.springjdbc.repository.ISpringBean;
+import com.vonchange.jdbc.abstractjdbc.util.markdown.MarkdownUtil;
+import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.SqlInfo;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
 import com.vonchange.mybatis.config.Constant;
@@ -27,114 +26,92 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
-import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * crud core
+ * jdbc core
  * by von_change
  */
-public abstract class AbstractJbdcCore {
+public abstract class AbstractJbdcCore implements JdbcRepostitory{
+
+
     private static final Logger logger = LoggerFactory.getLogger(AbstractJbdcCore.class);
     private static final Map<String, EntityInfo> entityMap = EntityUtil.entityMap;
 
 
     protected abstract Dialect getDefaultDialect();
-    protected abstract String getDataSource();
-    protected abstract  String modulePath();
-    protected abstract ISpringBean getSpringBean();
+    protected abstract DataSourceWrapper getReadDataSource();
+    protected abstract DataSourceWrapper getWriteDataSource();
 
-    private static volatile IJdbcCore jdbcCore= null;
-    private static volatile ISpringBean springBean= null;
-    private   IJdbcCore getJdbcCore(){
-        if (null == jdbcCore) {
-            synchronized (JdbcCoreImpl.class) {
-                if (null == jdbcCore) {
-                    jdbcCore = new JdbcCoreImpl() {
+    protected abstract  DataSourceWrapper getDataSourceFromSql(String sql);
+
+    private static volatile IJdbcBase jdbcBase= null;
+    private   IJdbcBase getJdbcBase(){
+        if (null == jdbcBase) {
+            synchronized (JdbcBaseImpl.class) {
+                if (null == jdbcBase) {
+                    jdbcBase = new JdbcBaseImpl() {
                         @Override
-                        protected YhJdbcTemplate initJdbcTemplate(String sql) {
-                            return  getJdbcTemplate(sql);
+                        protected YhJdbcTemplate initJdbcTemplate(String sql,Constants.EnumRWType enumRWType) {
+                            return  getJdbcTemplate(sql,enumRWType);
                         }
                     };
                 }
             }
         }
-        return jdbcCore;
+        return jdbcBase;
     }
-    private   ISpringBean initSpringBean(){
-        if (null == springBean) {
-            synchronized (ISpringBean.class) {
-                if (null == springBean) {
-                    springBean = getSpringBean();
-                }
-            }
+
+
+    private  static Map<String,YhJdbcTemplate> yhJdbcTemplateMap=new ConcurrentHashMap<>();
+    private YhJdbcTemplate getJdbcTemplate(String sql,Constants.EnumRWType enumRWType) {
+        DataSourceWrapper dataSource = getWriteDataSource();
+        if(enumRWType.equals(Constants.EnumRWType.read)){
+            dataSource = getReadDataSource();
         }
-        return springBean;
-    }
+        //从sql 里 获取datasource  实例名
+        DataSourceWrapper dataSourceFromSql =  getDataSourceFromSql(sql);
+        if(null!=dataSourceFromSql){
+            dataSource=dataSourceFromSql;
+        }
 
-    private DataSource getDataSource(String dataSourceName){
-        return initSpringBean().getBean(dataSourceName);
-    }
-
-    private YhJdbcTemplate getJdbcTemplate(String sql) {
-        String dataSource = getAbstractSqlDialectUtil().getDataSource(sql);
-        YhJdbcTemplate yhJdbcTemplate = getJdbcTemplateInSpring(dataSource);
-        yhJdbcTemplate.setFetchSizeBigData(getDialect(sql).getBigDataFetchSize());
-        yhJdbcTemplate.setFetchSize(getDialect(sql).getFetchSize());
+        if(yhJdbcTemplateMap.containsKey(dataSource.getKey())){
+            return yhJdbcTemplateMap.get(dataSource.getKey());
+        }
+        //缓存？
+        YhJdbcTemplate yhJdbcTemplate = new YhJdbcTemplate(dataSource.getDataSource());
+        yhJdbcTemplate.setFetchSizeBigData(getDefaultDialect().getBigDataFetchSize());
+        yhJdbcTemplate.setFetchSize(getDefaultDialect().getFetchSize());
+        yhJdbcTemplateMap.put(dataSource.getKey(),yhJdbcTemplate);
         return yhJdbcTemplate;
     }
 
-    private AbstractSqlDialectUtil getAbstractSqlDialectUtil() {
-        Dialect dialect = getDefaultDialect();
-        String dataSource = getDataSource();
-        return new AbstractSqlDialectUtil() {
-            @Override
-            protected Dialect getDefaultDialect() {
-                return dialect;
-            }
 
-            @Override
-            protected String getDataSource() {
-                return dataSource;
-            }
-        };
-    }
-    private YhJdbcTemplate getJdbcTemplateInSpring(String dataSource) {
-        if (StringUtils.isBlank(dataSource)) {
-            dataSource = ConstantJdbc.DataSource.DEFAULT;
-        }
-        DataSource dataSourceDs = getDataSource(dataSource);
-        return new YhJdbcTemplate(dataSourceDs);
-    }
-
-
-    private Dialect getDialect(String sql) {
-        return getAbstractSqlDialectUtil().getDialect(sql);
-    }
 
     public final <T> T  save(T entity) {
         SqlParmeter sqlParmeter = generateInsertSql(entity,false);
-        Object id=getJdbcCore().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        Object id=getJdbcBase().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
         if(null!=id){
             Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
         }
         return entity;
     }
     public final <T> int  update(T entity) {
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity);
-        return  getJdbcCore().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,false);
+        return  getJdbcBase().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
-    public final <T> int  update(T entity,String... nullFields) {
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,nullFields);
-        return  getJdbcCore().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
+    public final <T> int  updateAll(T entity) {
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,true);
+        return  getJdbcBase().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
     public   <T> T  saveDuplicateKey(T entity) {
         SqlParmeter sqlParmeter = generateInsertSql(entity,true);
-        Object id=getJdbcCore().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        Object id=getJdbcBase().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
         if(null!=id){
             Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
         }
@@ -178,7 +155,7 @@ public abstract class AbstractJbdcCore {
                     }
                     columnList.add(columnSql);
                     valueList.add(value);
-                    if(duplicate&&!entityField.getIgnoreUpdate()){
+                    if(duplicate&&!entityField.getUpdateNotNull()){
                         columnListUpdate.add(columnSql);
                         valueListUpdate.add(value);
                     }
@@ -207,7 +184,7 @@ public abstract class AbstractJbdcCore {
         }
         return sqlParmeter;
     }
-    private  <T> SqlParmeter generateUpdateEntitySql(T entity,String... nullFields) {
+    private  <T> SqlParmeter generateUpdateEntitySql(T entity,boolean isNullUpdate) {
         SqlParmeter sqlParmeter = new SqlParmeter();
         initEntityInfo(entity.getClass());
         String entityName = entity.getClass().getSimpleName();
@@ -218,7 +195,7 @@ public abstract class AbstractJbdcCore {
         if(null==idValue){
             throw new RuntimeException("主键值为空！无法更新");
         }
-        SqlFragment setSqlEntity =getUpdateSetSql(entity, entityInfo,nullFields);
+        SqlFragment setSqlEntity =getUpdateSetSql(entity, entityInfo, isNullUpdate);
         String setSql=setSqlEntity.getSql();
         List<Object> params= setSqlEntity.getParams();
         params.add(idValue);
@@ -228,7 +205,7 @@ public abstract class AbstractJbdcCore {
         sqlParmeter.setParameters(params.toArray());
         return sqlParmeter;
     }
-    private <T> SqlFragment getUpdateSetSql(T entity, EntityInfo entityInfo,String... nullFields) {
+    private <T> SqlFragment getUpdateSetSql(T entity, EntityInfo entityInfo,boolean isNullUpdate) {
         SqlFragment sqlFragment = new SqlFragment();
         List<String> setColumnList = new ArrayList<String>();
         List<Object> params = new ArrayList<Object>();
@@ -243,14 +220,11 @@ public abstract class AbstractJbdcCore {
                         setColumnList.add(StringUtils.format("{0} =?", entityField.getColumnName()));
                         params.add(value);
                     }
+                    if(null==value&&isNullUpdate&&!entityField.getUpdateNotNull()){
+                        setColumnList.add(StringUtils.format("{0} =?", entityField.getColumnName()));
+                        params.add(null);
+                    }
                 }
-            }
-        }
-        if(null!=nullFields&&nullFields.length>0){
-            for (String fieldStr : nullFields) {
-                String columnName = OrmUtil.toSql(fieldStr);
-                setColumnList.add(StringUtils.format("{0} =?", columnName));
-                params.add(null);
             }
         }
         String sql = StringUtils.StrList(setColumnList, ",");
@@ -268,6 +242,20 @@ public abstract class AbstractJbdcCore {
         return  sql.substring(0,sql.length()-1);
     }
     //crud end
+    public <T> T queryById(Class<T> type, Object id) {
+        String sql =generateQueryByIdSql(type);
+        return getJdbcBase().queryOne(type, sql,id);
+    }
+    private String generateQueryByIdSql(Class<?> type){
+        initEntityInfo(type);
+        EntityInfo entityInfo = entityMap.get(type.getSimpleName());
+        String tableName = entityInfo.getTableName();
+        if(null==tableName){
+            throw new RuntimeException("未定义实体table注解");
+        }
+        String idName = entityInfo.getIdColumnName();
+        return StringUtils.format("select * from {0} where  {1} = ?",tableName,idName);
+    }
     public <T> List<T> queryList(Class<T> type, String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
@@ -276,7 +264,7 @@ public abstract class AbstractJbdcCore {
 
 
     private  <T> List<T> findList(Class<T> type, String sql, Object... args) {
-        return getJdbcCore().queryList(type, sql, args);
+        return getJdbcBase().queryList(type, sql, args);
     }
 
 
@@ -305,8 +293,8 @@ public abstract class AbstractJbdcCore {
 
     private  <T> T findBean(Class<T> type, String sql, Object... args) {
         sql = removeLimit(sql);
-        sql = getDialect(sql).getLimitOne(sql);
-        return getJdbcCore().queryOne(type, sql, args);
+        sql = getDefaultDialect().getLimitOne(sql);
+        return getJdbcBase().queryOne(type, sql, args);
     }
 
 
@@ -328,12 +316,12 @@ public abstract class AbstractJbdcCore {
 
     private Map<String, Object> findOne(String sql, Object... args) {
         sql = removeLimit(sql);
-        sql = getDialect(sql).getLimitOne(sql);
-        return getJdbcCore().queryUniqueResultMap(sql, args);
+        sql = getDefaultDialect().getLimitOne(sql);
+        return getJdbcBase().queryUniqueResultMap(sql, args);
     }
 
     private List<Map<String, Object>> findList(String sql, Object... args) {
-        return getJdbcCore().queryListResultMap(sql, args);
+        return getJdbcBase().queryListResultMap(sql, args);
     }
 
 
@@ -348,7 +336,7 @@ public abstract class AbstractJbdcCore {
     }
 
     private Page<Map<String, Object>> findBigData(String sql, AbstractMapPageWork pageWork, Object... args) {
-        return getJdbcCore().queryForBigData(sql, pageWork, args);
+        return getJdbcBase().queryForBigData(sql, pageWork, args);
     }
 
     public final <T> Page<T> queryPageBigData(Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter) {
@@ -362,7 +350,7 @@ public abstract class AbstractJbdcCore {
     }
 
     private  <T> Page<T> findBigData(Class<T> type, String sql, AbstractPageWork pageWork, Object... args) {
-        return getJdbcCore().queryForBigData(type, sql, pageWork, args);
+        return getJdbcBase().queryForBigData(type, sql, pageWork, args);
     }
 
 
@@ -411,8 +399,8 @@ public abstract class AbstractJbdcCore {
     private <T> Page<T> findPage(Class<T> type, String sql, long totalCount, Pageable pageable, Object... parameter) {
 
         int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
-        Integer firstEntityIndex = pageable.getPageSize() * pageNum;
-        sql = getDialect(sql).getPageSql(sql, firstEntityIndex, pageable.getPageSize());
+        int firstEntityIndex = pageable.getPageSize() * pageNum;
+        sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
         List<T> entities = findList(type, sql, parameter);
         return new PageImpl<>(entities, pageable, totalCount);
     }
@@ -421,8 +409,8 @@ public abstract class AbstractJbdcCore {
       /*  sql = removeLimit(sql);
         long totalCount = countMySqlResult(sql, countSql, parameter);*/
         int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
-        Integer firstEntityIndex = pageable.getPageSize() * pageNum;
-        sql = getDialect(sql).getPageSql(sql, firstEntityIndex, pageable.getPageSize());
+        int firstEntityIndex = pageable.getPageSize() * pageNum;
+        sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
         List<Map<String, Object>> entities = findList(sql, parameter);
         return new PageImpl<>(entities, pageable, totalCount);
     }
@@ -496,7 +484,7 @@ public abstract class AbstractJbdcCore {
     }
 
     private Object findBy(String sql, int columnIndex, Object... params) {
-        return getJdbcCore().queryOneColumn(sql, columnIndex, params);
+        return getJdbcBase().queryOneColumn(sql, columnIndex, params);
     }
 
     private SqlParmeter getSqlParmeter(String sql, Map<String, Object> parameter) {
@@ -511,15 +499,15 @@ public abstract class AbstractJbdcCore {
 
     private  <T> Map<String, T> queryBySql(Class<T> c, String sql, String keyInMap, Map<String, Object> parameter) {
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        Map<String, T> result = getJdbcCore().queryMapList(c, sqlParmeter.getSql(), keyInMap, sqlParmeter.getParameters());
+        Map<String, T> result = getJdbcBase().queryMapList(c, sqlParmeter.getSql(), keyInMap, sqlParmeter.getParameters());
         return result;
     }
 
     private SqlInfo getSqlInfo(String sqlId) {
-        String modulePath=modulePath();
+      /*  String modulePath=modulePath();
         if(!sqlId.contains(".")&&!StringUtils.isBlank(modulePath)){
             sqlId=modulePath+"."+sqlId;
-        }
+        }*/
         return MarkdownUtil.getSqlInfo(sqlId);
     }
 
@@ -545,14 +533,14 @@ public abstract class AbstractJbdcCore {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         String sql = sqlinfo.getSql();
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return getJdbcCore().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        return getJdbcBase().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
 
     public Object insert(String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         String sql = sqlinfo.getSql();
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return getJdbcCore().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        return getJdbcBase().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
 
 }
