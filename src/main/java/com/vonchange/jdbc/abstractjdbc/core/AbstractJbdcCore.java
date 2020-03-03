@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
  * jdbc core
  * by von_change
  */
-public abstract class AbstractJbdcCore implements JdbcRepostitory{
+public abstract class AbstractJbdcCore implements JdbcRepository{
 
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractJbdcCore.class);
@@ -246,6 +246,9 @@ public abstract class AbstractJbdcCore implements JdbcRepostitory{
         String sql =generateQueryByIdSql(type);
         return getJdbcBase().queryOne(type, sql,id);
     }
+
+
+
     private String generateQueryByIdSql(Class<?> type){
         initEntityInfo(type);
         EntityInfo entityInfo = entityMap.get(type.getSimpleName());
@@ -297,12 +300,6 @@ public abstract class AbstractJbdcCore implements JdbcRepostitory{
         return getJdbcBase().queryOne(type, sql, args);
     }
 
-
-    private List<Map<String, Object>> queryListBySql(String sql, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return findList(sqlParmeter.getSql(), sqlParmeter.getParameters());
-    }
-
     public Map<String, Object> queryOne(String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         return findOne(sqlinfo.getSql(), parameter);
@@ -325,7 +322,7 @@ public abstract class AbstractJbdcCore implements JdbcRepostitory{
     }
 
 
-    public final Page<Map<String, Object>> queryPageBigData(String sqlId, AbstractMapPageWork pageWork, Map<String, Object> parameter) {
+    public final Page<Map<String, Object>> queryBigData(String sqlId, AbstractMapPageWork pageWork, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
         return findBigData(sqlInfo.getSql(), pageWork, parameter);
     }
@@ -339,7 +336,7 @@ public abstract class AbstractJbdcCore implements JdbcRepostitory{
         return getJdbcBase().queryForBigData(sql, pageWork, args);
     }
 
-    public final <T> Page<T> queryPageBigData(Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter) {
+    public final <T> Page<T> queryBigData(Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
         return findBigData(type, sqlInfo.getSql(), pageWork, parameter);
     }
@@ -367,7 +364,8 @@ public abstract class AbstractJbdcCore implements JdbcRepostitory{
 
     public final List<Map<String, Object>> queryList(String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
-        return findList(sqlInfo.getSql(), parameter);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        return findList(sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
 
 
@@ -467,7 +465,7 @@ public abstract class AbstractJbdcCore implements JdbcRepostitory{
     }
 
 
-    public  <T> T queryOneField(Class<?> targetType,String sqlId, Map<String, Object> parameter) {
+    public  <T> T queryOneColumn(Class<?> targetType,String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
 
         Object result= findBy(sqlInfo.getSql(), parameter);
