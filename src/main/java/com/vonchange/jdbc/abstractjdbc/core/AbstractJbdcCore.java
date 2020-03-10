@@ -428,17 +428,22 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     }
 
     private long countMySqlResult(String sql, String countSql, Map<String, Object> params) {
-        if (null != params.get(ConstantJdbc.PageParam.COUNT)) {
+        if (params.containsKey(ConstantJdbc.PageParam.COUNT)) {
             countSql = ConvertUtil.toString(params.get(ConstantJdbc.PageParam.COUNT));
         }
+        //直接给 数量 传入 　_count = @123
         if (!StringUtils.isBlank(countSql) && countSql.startsWith(ConstantJdbc.PageParam.AT)) {
             return ConvertUtil.toLong(countSql.substring(1));
         }
         Object result = null;
+
+        if (!StringUtils.isBlank(countSql)) {
+            result = findBy(countSql, params);
+        }
         if (StringUtils.isBlank(countSql)) {
             SqlParmeter sqlParmeter = getSqlParmeter(sql, params);
             countSql = generateMyCountSql(sqlParmeter.getSql());
-            result = findBy(countSql, 1, sqlParmeter.getParameters());
+            result = findBy(countSql, sqlParmeter.getParameters());
         }
         if (null == result) {
             return 0L;

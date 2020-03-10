@@ -17,6 +17,8 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -29,14 +31,16 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
  * @param <T> the target processor type
  */
 public  class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
-
+    private static final Logger logger = LoggerFactory.getLogger(BigDataBeanListHandler.class);
     /**
      * The Class of beans produced by this handler.
      */
@@ -81,20 +85,21 @@ public  class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
         try {
             return this.toBeanList(rs, type,pageSize);
         } catch (IntrospectionException e) {
-            e.printStackTrace();
+            logger.error("IntrospectionException ",e);
         } catch (InstantiationException e) {
-            e.printStackTrace();
+            logger.error("InstantiationException",e);
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            logger.error("IllegalAccessException",e);
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            logger.error("InvocationTargetException",e);
         }
         return new PageImpl<>(new ArrayList<T>());
     }
     private  Page<T> toBeanList(ResultSet rs,  Class<? extends T> type,int pageSize) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException, InvocationTargetException {
         List<T> result = new ArrayList<>();
+        Map<String,Object> extData= new HashMap<>();
         if (!rs.next()) {
-            abstractPageWork.doPage(result,0);
+            abstractPageWork.doPage(result,0,extData);
             return 	new PageImpl<>(result);
         }
         int pageItem=0;
@@ -107,14 +112,14 @@ public  class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
             pageItem++;
             count++;
             if(pageItem==pageSize){
-                abstractPageWork.doPage(result,pageNum);
+                abstractPageWork.doPage(result,pageNum,extData);
                 pageNum++;
                 result=new ArrayList<>();
                 pageItem=0;
             }
         } while (rs.next());
         if(result.size()>0){
-            abstractPageWork.doPage(result,pageNum);
+            abstractPageWork.doPage(result,pageNum,extData);
             Pageable pageable=new PageRequest(pageNum,pageSize);
             return 	new PageImpl<>(result,pageable,count);
         }

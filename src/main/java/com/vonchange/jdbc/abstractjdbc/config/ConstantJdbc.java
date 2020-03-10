@@ -20,7 +20,7 @@ public class ConstantJdbc {
         public static final String FLAG = "@ds:";
     }
     public static final String CACHEPRE = "sql_";
-    public static final String COUNTFLAG = "_count";
+    public static final String COUNTFLAG = "Count";
     public static final String CACHEID = " @id";
     public static final String ENDSQL = "Sql";
     public static final String SQLFATH = "sql";

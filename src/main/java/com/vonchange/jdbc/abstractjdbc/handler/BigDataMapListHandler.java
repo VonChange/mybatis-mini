@@ -27,6 +27,7 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,8 +55,9 @@ public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<Stri
 
 	private Page<Map<String,Object>> toMapList(ResultSet rs,int pageSize) throws SQLException {
 		List<Map<String,Object>> result = new ArrayList<>();
+		Map<String,Object> extData= new HashMap<>();
 		if (!rs.next()) {
-			abstractPageWork.doPage(result,0);
+			abstractPageWork.doPage(result,0,extData);
 			return 	new PageImpl<>(result);
 		}
 		int pageItem=0;
@@ -67,14 +69,14 @@ public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<Stri
 			pageItem++;
 			count++;
 			if(pageItem==pageSize){
-				abstractPageWork.doPage(result,pageNum);
+				abstractPageWork.doPage(result,pageNum,extData);
 				pageNum++;
 				result=new ArrayList<>();
 				pageItem=0;
 			}
 		} while (rs.next());
 		if(result.size()>0){
-			abstractPageWork.doPage(result,pageNum);
+			abstractPageWork.doPage(result,pageNum,extData);
 			Pageable pageable=new PageRequest(pageNum,pageSize);
 			return 	new PageImpl<>(result,pageable,count);
 		}
