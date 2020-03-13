@@ -277,15 +277,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     }
 
 
-    public <T> Page<T> queryPage(Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
-        SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
-        String countSql = countSqlInfo.getSql();
-        if (StringUtils.isBlank(countSqlInfo.getSql())) {
-            countSql = null;
-        }
-        return findPage(type, sqlinfo.getSql(), countSql, pageable, parameter);
-    }
+
 
 
     private  <T> T findBean(Class<T> type, String sql, Map<String, Object> parameter) {
@@ -295,7 +287,6 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
 
 
     private  <T> T findBean(Class<T> type, String sql, Object... args) {
-        sql = removeLimit(sql);
         sql = getDefaultDialect().getLimitOne(sql);
         return getJdbcBase().queryOne(type, sql, args);
     }
@@ -312,7 +303,6 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
 
 
     private Map<String, Object> findOne(String sql, Object... args) {
-        sql = removeLimit(sql);
         sql = getDefaultDialect().getLimitOne(sql);
         return getJdbcBase().queryUniqueResultMap(sql, args);
     }
@@ -356,10 +346,12 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         SqlInfo sqlInfo = getSqlInfo(sqlId);
         SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
         String countSql = countSqlInfo.getSql();
+        boolean hasCountSqlInMd = true;
         if (StringUtils.isBlank(countSql)) {
             countSql = null;
+            hasCountSqlInMd= false;
         }
-        return findPage(sqlInfo.getSql(), countSql, pageable, parameter);
+        return findPage(sqlInfo.getSql(), countSql,hasCountSqlInMd, pageable, parameter);
     }
 
     public final List<Map<String, Object>> queryList(String sqlId, Map<String, Object> parameter) {
@@ -369,63 +361,71 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     }
 
 
-    private  Page<Map<String, Object>> findPage(String sql, String countSql, Pageable pageable, Map<String, Object> parameter) {
+    private  Page<Map<String, Object>> findPage(String sql, String countSql,boolean hasCountSqlInMd,  Pageable pageable, Map<String, Object> parameter) {
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        sql = removeLimit(sql);
         long totalCount = countMySqlResult(sql, countSql, parameter);
-        return findPage(removeLimit(sqlParmeter.getSql()), totalCount, pageable, sqlParmeter.getParameters());
+        return findPage(hasCountSqlInMd,sqlParmeter.getSql(), totalCount, pageable, sqlParmeter.getParameters());
     }
-
-    private <T> Page<T> findPage(Class<T> type, String sql, String countSql, Pageable pageable, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        sql = removeLimit(sql);
-        long totalCount = countMySqlResult(sql, countSql, parameter);
-        return findPage(type, removeLimit(sqlParmeter.getSql()), totalCount, pageable, sqlParmeter.getParameters());
-    }
-
-    private String removeLimit(String sql) {
-        String lowerSql = sql.toLowerCase();
-        if (lowerSql.contains("limit ")) {
-            sql = sql.substring(0, lowerSql.indexOf("limit "));
-        }
-        if (lowerSql.contains("limit\n")) {
-            sql = sql.substring(0, lowerSql.indexOf("limit\n"));
-        }
-        return sql;
-    }
-
-    private <T> Page<T> findPage(Class<T> type, String sql, long totalCount, Pageable pageable, Object... parameter) {
-
+    private Page<Map<String, Object>> findPage(boolean hasCountSqlInMd,String sql, long totalCount, Pageable pageable, Object... parameter) {
         int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
         int firstEntityIndex = pageable.getPageSize() * pageNum;
-        sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
-        List<T> entities = findList(type, sql, parameter);
-        return new PageImpl<>(entities, pageable, totalCount);
-    }
+        boolean hasLimit =false;
+        if(hasCountSqlInMd){
+            hasLimit =hasLimit(sql);
+        }
+        if(!hasCountSqlInMd||!hasLimit){
 
-    private Page<Map<String, Object>> findPage(String sql, long totalCount, Pageable pageable, Object... parameter) {
-      /*  sql = removeLimit(sql);
-        long totalCount = countMySqlResult(sql, countSql, parameter);*/
-        int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
-        int firstEntityIndex = pageable.getPageSize() * pageNum;
-        sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
+            sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
+        }
         List<Map<String, Object>> entities = findList(sql, parameter);
         return new PageImpl<>(entities, pageable, totalCount);
     }
 
-    private Page<Map<String, Object>> findPage(String sql, String countSql, Pageable pageable, Object... parameter) {
-        sql = removeLimit(sql);
-        long totalCount = countMySqlResultInArray(sql, countSql, parameter);
-        return findPage(sql, totalCount, pageable, parameter);
+    public <T> Page<T> queryPage(Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter) {
+        SqlInfo sqlinfo = getSqlInfo(sqlId);
+        SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
+        String countSql = countSqlInfo.getSql();
+        boolean hasCountSqlInMd = true;
+        if (StringUtils.isBlank(countSqlInfo.getSql())) {
+            countSql = null;
+            hasCountSqlInMd= false;
+        }
+        return findPage(type, sqlinfo.getSql(), countSql,hasCountSqlInMd, pageable, parameter);
     }
 
-    private final Page<Map<String, Object>> findPage(String sql, Pageable pageable, Map<String, Object> parameter) {
-        return findPage(sql, null, pageable, parameter);
+    private <T> Page<T> findPage(Class<T> type, String sql, String countSql,boolean hasCountSqlInMd,  Pageable pageable, Map<String, Object> parameter) {
+        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
+        long totalCount = countMySqlResult(sql, countSql, parameter);
+        return findPage(type,hasCountSqlInMd, sqlParmeter.getSql(), totalCount, pageable, sqlParmeter.getParameters());
     }
 
-    private Page<Map<String, Object>> findPage(String sql, Pageable pageable, Object... parameter) {
-        return findPage(sql, null, pageable, parameter);
+   private boolean hasLimit(String sql){
+       String lowerSql = sql.toLowerCase();
+       if (lowerSql.contains("limit ")) {
+           return true;
+       }
+       if (lowerSql.contains("limit\n")) {
+           return true;
+       }
+       return false;
+   }
+
+    private <T> Page<T> findPage(Class<T> type,boolean hasCountSqlInMd, String sql, long totalCount, Pageable pageable, Object... parameter) {
+
+        int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
+        int firstEntityIndex = pageable.getPageSize() * pageNum;
+        boolean hasLimit =false;
+        if(hasCountSqlInMd){
+            hasLimit =hasLimit(sql);
+        }
+        if(!hasCountSqlInMd||!hasLimit){
+            sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
+        }
+        List<T> entities = findList(type, sql, parameter);
+        return new PageImpl<>(entities, pageable, totalCount);
     }
+
+
 
     private long countMySqlResult(String sql, String countSql, Map<String, Object> params) {
         if (params.containsKey(ConstantJdbc.PageParam.COUNT)) {

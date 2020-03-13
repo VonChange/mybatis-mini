@@ -19,7 +19,7 @@ public class MySQLDialect implements Dialect {
 
     @Override
     public String getLimitOne(String sql) {
-        return getPageSql(sql,0,1);
+        return sql;//getPageSql(sql,0,1);
     }
 
     @Override
