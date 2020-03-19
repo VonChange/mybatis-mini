@@ -1,7 +1,7 @@
 package com.vonchange.jdbc.abstractjdbc.core;
 
-import com.vonchange.jdbc.abstractjdbc.config.Constants;
 import com.vonchange.jdbc.abstractjdbc.handler.*;
+import com.vonchange.jdbc.abstractjdbc.model.DataSourceWrapper;
 import com.vonchange.jdbc.abstractjdbc.template.YhJdbcTemplate;
 import com.vonchange.jdbc.abstractjdbc.util.sql.SqlFill;
 import org.slf4j.Logger;
@@ -13,56 +13,57 @@ import java.util.Map;
 
 public abstract class JdbcBaseImpl implements IJdbcBase{
     private static final Logger logger = LoggerFactory.getLogger(JdbcBaseImpl.class);
-    protected  abstract YhJdbcTemplate initJdbcTemplate(String sql,Constants.EnumRWType enumRWType);
+    protected  abstract YhJdbcTemplate initJdbcTemplate(DataSourceWrapper dataSourceWrapper,String sql);
+
     @Override
-    public Object insert(String sql, Object[] parameter) {
+    public Object insert(DataSourceWrapper dataSourceWrapper,String sql, Object[] parameter) {
         logSql(sql, parameter);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.write);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.insert(sql, new ScalarHandler(), parameter);
     }
 
     @Override
-    public  <T> List<T> queryList(Class<T> type, String sql, Object... args) {
+    public  <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.query(sql, new BeanListHandler<>(type), args);
     }
     @Override
-    public List<Map<String, Object>> queryListResultMap(String sql, Object... args) {
+    public List<Map<String, Object>> queryListResultMap(DataSourceWrapper dataSourceWrapper,String sql, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.query(sql, new MapListHandler(sql), args);
     }
 
     @Override
-    public Page<Map<String, Object>> queryForBigData(String sql, AbstractMapPageWork pageWork, Object... args) {
+    public Page<Map<String, Object>> queryForBigData(DataSourceWrapper dataSourceWrapper,String sql, AbstractMapPageWork pageWork, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.queryBigData(sql, new BigDataMapListHandler(pageWork, sql), args);
     }
 
     @Override
-    public <T> Page<T> queryForBigData(Class<T> type, String sql, AbstractPageWork<T> pageWork, Object... args) {
+    public <T> Page<T> queryForBigData(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, AbstractPageWork<T> pageWork, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return (Page<T>) jdbcTemplate.queryBigData(sql, new BigDataBeanListHandler(type, pageWork, sql), args);
     }
     @Override
-    public <T> T queryOne(Class<T> type, String sql, Object... args) {
+    public <T> T queryOne(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.query(sql, new BeanHandler<>(type), args);
     }
     @Override
-    public Map<String, Object> queryUniqueResultMap(String sql, Object... args) {
+    public Map<String, Object> queryUniqueResultMap(DataSourceWrapper dataSourceWrapper,String sql, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.query(sql, new MapHandler(sql), args);
     }
     @Override
-    public   Object queryOneColumn(String sql, int columnIndex, Object... args) {
+    public   Object queryOneColumn(DataSourceWrapper dataSourceWrapper,String sql, int columnIndex, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.query(sql, new ScalarHandler(columnIndex), args);
     }
 
@@ -73,16 +74,25 @@ public abstract class JdbcBaseImpl implements IJdbcBase{
     }
 
     @Override
-    public  <T> Map<String, T> queryMapList(Class<T> c, String sql, String keyInMap, Object... args) {
+    public  <T> Map<String, T> queryMapList(DataSourceWrapper dataSourceWrapper,Class<T> c, String sql, String keyInMap, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.read);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.query(sql, new MapBeanListHandler<>(c, keyInMap), args);
     }
     @Override
-    public int update(String sql, Object... args) {
+    public int update(DataSourceWrapper dataSourceWrapper,String sql, Object... args) {
         logSql(sql, args);
-        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(sql,Constants.EnumRWType.write);
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
         return jdbcTemplate.update(sql, args);
+    }
+
+    public int[] updateBatch(DataSourceWrapper dataSourceWrapper,String sql, List<Object[]> batchArgs) {
+        if(null==batchArgs||batchArgs.isEmpty()){
+            return new int[0];
+        }
+        logSql(sql, batchArgs.get(0));
+        YhJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,sql);
+        return jdbcTemplate.batchUpdate(sql, batchArgs);
     }
 
 }

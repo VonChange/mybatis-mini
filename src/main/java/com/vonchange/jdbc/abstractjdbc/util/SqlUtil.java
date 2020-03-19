@@ -12,6 +12,9 @@ import java.util.Map;
  * Created by 冯昌义 on 2018/5/24.
  */
 public class SqlUtil {
+    private SqlUtil() {
+        throw new IllegalStateException("Utility class");
+    }
     public static String getFullSql(String sql, Map<String, Object> parameter) {
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
         return SqlFill.fill(sqlParmeter.getSql(), sqlParmeter.getParameters());

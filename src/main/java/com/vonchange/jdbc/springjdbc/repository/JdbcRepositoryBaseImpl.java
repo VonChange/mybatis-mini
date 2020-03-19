@@ -6,14 +6,13 @@ import com.vonchange.jdbc.abstractjdbc.model.DataSourceWrapper;
 import javax.sql.DataSource;
 
 
-public    class JdbcRepositoryImpl extends AbstractJbdcRepositoryMysql implements JdbcRepository {
+public    class JdbcRepositoryBaseImpl extends AbstractJbdcRepositoryMysql implements JdbcRepository {
     private DataSource dataSource;
-    public JdbcRepositoryImpl(DataSource dataSource){
+    public JdbcRepositoryBaseImpl(DataSource dataSource){
         this.dataSource=dataSource;
     }
-
     @Override
-    protected DataSourceWrapper getReadDataSource() {
+    public DataSourceWrapper getReadDataSource() {
         return new DataSourceWrapper(dataSource,"dataSource");
     }
 
@@ -22,6 +21,10 @@ public    class JdbcRepositoryImpl extends AbstractJbdcRepositoryMysql implement
         return new DataSourceWrapper(dataSource,"dataSource");
     }
 
+    @Override
+    protected int batchSize() {
+        return 5000;
+    }
 
 
 }

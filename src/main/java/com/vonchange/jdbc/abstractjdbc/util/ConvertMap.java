@@ -5,12 +5,14 @@ import com.vonchange.jdbc.abstractjdbc.util.sql.OrmUtil;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
 import com.vonchange.mybatis.config.Constant;
+import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 
 import javax.persistence.Column;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -18,6 +20,20 @@ public class ConvertMap {
     private ConvertMap() {
         throw new IllegalStateException("Utility class");
     }
+
+     public static   <T> Map<String,Object> toMap(Class<?> clazz,T entity) throws IntrospectionException {
+         BeanInfo beanInfo = Introspector.getBeanInfo(clazz);
+         PropertyDescriptor[] propertyDescriptors =  beanInfo.getPropertyDescriptors();
+         String propertyName;
+         Object value;
+         Map<String,Object> map = new HashMap<>();
+         for (PropertyDescriptor property: propertyDescriptors) {
+             propertyName = property.getName();
+             value=property.getValue(propertyName);
+             map.put(propertyName,value);
+         }
+         return map;
+     }
 
     /**
      * 将一个 Map 对象转化为一个 JavaBean
@@ -31,7 +47,12 @@ public class ConvertMap {
     @SuppressWarnings("rawtypes") 
     public static Object convertMap(Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InstantiationException {
         BeanInfo beanInfo = Introspector.getBeanInfo(type); // 获取类属性
-        Object entity = type.newInstance(); // 创建 JavaBean 对象
+        Object entity = null;
+        try {
+             entity = type.newInstance(); // 创建 JavaBean 对象
+        }catch (InstantiationException e){
+            throw new  MybatisMinRuntimeException("java.lang.InstantiationException "+type.getName()+" 实体类需要无参数构造函数");
+        }
         if(null==map||map.isEmpty()){
             return  entity;
         }

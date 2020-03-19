@@ -2,7 +2,6 @@ package com.vonchange.jdbc.abstractjdbc.core;
 
 
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
-import com.vonchange.jdbc.abstractjdbc.config.Constants;
 import com.vonchange.jdbc.abstractjdbc.dialect.Dialect;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractMapPageWork;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractPageWork;
@@ -11,13 +10,16 @@ import com.vonchange.jdbc.abstractjdbc.model.SqlFragment;
 import com.vonchange.jdbc.abstractjdbc.model.SqlParmeter;
 import com.vonchange.jdbc.abstractjdbc.parser.CountSqlParser;
 import com.vonchange.jdbc.abstractjdbc.template.YhJdbcTemplate;
+import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
 import com.vonchange.jdbc.abstractjdbc.util.SqlUtil;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.MarkdownUtil;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.SqlInfo;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
+import com.vonchange.mybatis.common.util.map.HashMap;
 import com.vonchange.mybatis.config.Constant;
 import com.vonchange.mybatis.tpl.EntityUtil;
+import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 import com.vonchange.mybatis.tpl.model.EntityField;
 import com.vonchange.mybatis.tpl.model.EntityInfo;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.beans.IntrospectionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,15 +42,13 @@ import java.util.regex.Pattern;
  */
 public abstract class AbstractJbdcCore implements JdbcRepository{
 
-
-    private static final Logger logger = LoggerFactory.getLogger(AbstractJbdcCore.class);
-    private static final Map<String, EntityInfo> entityMap = EntityUtil.entityMap;
-
+    private static final Logger log = LoggerFactory.getLogger(AbstractJbdcCore.class);
 
     protected abstract Dialect getDefaultDialect();
-    protected abstract DataSourceWrapper getReadDataSource();
+    public abstract DataSourceWrapper getReadDataSource();
     protected abstract DataSourceWrapper getWriteDataSource();
-
+    protected abstract boolean needInitEntityInfo();
+    protected abstract int batchSize();
     protected abstract  DataSourceWrapper getDataSourceFromSql(String sql);
 
     private static volatile IJdbcBase jdbcBase= null;
@@ -57,8 +58,8 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
                 if (null == jdbcBase) {
                     jdbcBase = new JdbcBaseImpl() {
                         @Override
-                        protected YhJdbcTemplate initJdbcTemplate(String sql,Constants.EnumRWType enumRWType) {
-                            return  getJdbcTemplate(sql,enumRWType);
+                        protected YhJdbcTemplate initJdbcTemplate(DataSourceWrapper dataSourceWrapper,String sql) {
+                            return  getJdbcTemplate(dataSourceWrapper,sql);
                         }
                     };
                 }
@@ -69,17 +70,24 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
 
 
     private  static Map<String,YhJdbcTemplate> yhJdbcTemplateMap=new ConcurrentHashMap<>();
-    private YhJdbcTemplate getJdbcTemplate(String sql,Constants.EnumRWType enumRWType) {
-        DataSourceWrapper dataSource = getWriteDataSource();
-        if(enumRWType.equals(Constants.EnumRWType.read)){
-            dataSource = getReadDataSource();
+    private DataSourceWrapper getDataSourceWrapper(DataSourceWrapper dataSourceWrapper,String sql){
+        if(null!=dataSourceWrapper){
+            return dataSourceWrapper;
         }
         //从sql 里 获取datasource  实例名
         DataSourceWrapper dataSourceFromSql =  getDataSourceFromSql(sql);
         if(null!=dataSourceFromSql){
-            dataSource=dataSourceFromSql;
+            return dataSourceFromSql;
         }
-
+        return getWriteDataSource();
+        //去除 直接读随机数据源 主从有延迟 还是需要根据业务指定数据源
+       /* if(enumRWType.equals(Constants.EnumRWType.read)){
+            dataSource = getReadDataSource();
+        }*/
+    }
+    private YhJdbcTemplate getJdbcTemplate(DataSourceWrapper dataSourceWrapper,String sql) {
+        DataSourceWrapper dataSource=getDataSourceWrapper(dataSourceWrapper,sql);
+        log.debug("\n====== use dataSource key {}",dataSource.getKey());
         if(yhJdbcTemplateMap.containsKey(dataSource.getKey())){
             return yhJdbcTemplateMap.get(dataSource.getKey());
         }
@@ -90,37 +98,119 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         yhJdbcTemplateMap.put(dataSource.getKey(),yhJdbcTemplate);
         return yhJdbcTemplate;
     }
-
-
-
-    public final <T> T  save(T entity) {
-        SqlParmeter sqlParmeter = generateInsertSql(entity,false);
-        Object id=getJdbcBase().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
+    public final <T> int  insertBatch(List<T> entityList){
+        return insertBatch(null,entityList);
+    }
+    public final <T> int  insertBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList) {
+        if(null==entityList||entityList.isEmpty()){
+            return 0;
+        }
+        SqlParmeter sqlParmeter = generateInsertSql(entityList.get(0),false,true,false);
+        String sql=sqlParmeter.getSql();
+        List<Object[]> list = new ArrayList<>();
+        int i =0;
+        int batchSize=batchSize();
+        List<List<Object[]>> listSplit= new ArrayList<>();
+        for (T t: entityList) {
+            if(i!=0&&i%batchSize==0){
+                listSplit.add(list);
+                list = new ArrayList<>();
+            }
+            SqlParmeter sqlParameterItem = generateInsertSql(t,false,true,true);
+            list.add(sqlParameterItem.getParameters());
+            i++;
+        }
+        if(!list.isEmpty()){
+            listSplit.add(list);
+        }
+        for (List<Object[]> item:listSplit) {
+            int[] result =getJdbcBase().updateBatch(dataSourceWrapper,sql,item);
+            log.info("\ninsertBatch {}",result);
+        }
+        return  1;
+    }
+    public final <T> T  insert(DataSourceWrapper dataSourceWrapper,T entity) {
+        SqlParmeter sqlParmeter = generateInsertSql(entity,false,false,false);
+        Object id=getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
         if(null!=id){
             Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
         }
         return entity;
     }
+    public final <T> T  insert(T entity) {
+        return insert(null,entity);
+    }
+
+    public final <T> int  updateBatchAllField(List<T> entityList){
+        return  updateBatchAllField(null,entityList);
+    }
+    public final <T> int  updateBatchAllField(DataSourceWrapper dataSourceWrapper,List<T> entityList){
+        return updateBatch(dataSourceWrapper, entityList,true);
+    }
+    public final <T> int  updateBatch(List<T> entityList){
+        return  updateBatch(null,entityList);
+    }
+    public final <T> int  updateBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList){
+        return updateBatch(dataSourceWrapper, entityList,false);
+    }
+    private final <T> int  updateBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList,boolean isNullUpdate) {
+        if(null==entityList||entityList.isEmpty()){
+            return 0;
+        }
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entityList.get(0),isNullUpdate,true);
+        String sql= sqlParmeter.getSql();
+        List<Object[]> list = new ArrayList<>();
+        int i =0;
+        int batchSize=batchSize();
+        List<List<Object[]>> listSplit= new ArrayList<>();
+        for (T t: entityList) {
+            if (i != 0 && i % batchSize == 0) {
+                listSplit.add(list);
+                list = new ArrayList<>();
+            }
+            SqlParmeter sqlParameterItem = generateBatchUpdateParam(t);
+            list.add(sqlParameterItem.getParameters());
+            i++;
+        }
+        if(!list.isEmpty()){
+            listSplit.add(list);
+        }
+        for (List<Object[]> item:listSplit) {
+            int[] result =getJdbcBase().updateBatch(dataSourceWrapper,sql,item);
+            log.info("\nupdateBatch {}",result);
+        }
+        return  1;
+    }
+    public final <T> int  update(DataSourceWrapper dataSourceWrapper,T entity) {
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,false,false);
+        return  getJdbcBase().update(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
+    }
     public final <T> int  update(T entity) {
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,false);
-        return  getJdbcBase().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        return update(null,entity);
     }
-    public final <T> int  updateAll(T entity) {
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,true);
-        return  getJdbcBase().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
+    public final <T> int  updateAllField(DataSourceWrapper dataSourceWrapper,T entity) {
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,true,false);
+        return  getJdbcBase().update(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
-    public   <T> T  saveDuplicateKey(T entity) {
-        SqlParmeter sqlParmeter = generateInsertSql(entity,true);
-        Object id=getJdbcBase().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
+    public final <T> int  updateAllField(T entity) {
+        return  updateAllField(null,entity);
+    }
+    public  final <T> T  insertDuplicateKey(T entity) {
+        return insertDuplicateKey(null,entity);
+    }
+    public final  <T> T  insertDuplicateKey(DataSourceWrapper dataSourceWrapper,T entity) {
+        SqlParmeter sqlParmeter = generateInsertSql(entity,true,false,false);
+        Object id=getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
         if(null!=id){
             Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
         }
         return entity;
     }
     private void initEntityInfo(Class<?> clazz) {
-        EntityUtil.initEntityInfo(clazz);
+        if(needInitEntityInfo()){
+            EntityUtil.initEntityInfo(clazz);
+        }
     }
-
 
     public static Object getPublicPro(Object bean, String name) {
         if(name.equals("serialVersionUID")){//??????
@@ -128,74 +218,100 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         }
         return Constant.BeanUtils.getProperty(bean, name);
     }
-    private  <T> SqlParmeter generateInsertSql(T entity,boolean duplicate) {
+
+    private  <T> SqlParmeter generateInsertSql(T entity,boolean duplicate,boolean isBatchGen,boolean isBatchOnlyValue) {
         initEntityInfo(entity.getClass());
         SqlParmeter sqlParmeter = new SqlParmeter();
         List<String> columnList = new ArrayList<>();
         List<Object> valueList = new ArrayList<>();
-
         List<String> columnListUpdate = new ArrayList<>();
         List<Object> valueListUpdate = new ArrayList<>();
-
-        String entityName = entity.getClass().getSimpleName();
-        EntityInfo entityInfo = entityMap.get(entityName);
+        EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
         String tableName = entityInfo.getTableName();
-        Map<String, EntityField> entityFieldMap = entityMap.get(entityName).getFieldMap();
+        Map<String, EntityField> entityFieldMap = entityInfo.getFieldMap();
         String columnSql;
         for (Map.Entry<String, EntityField> entry : entityFieldMap.entrySet()) {
             String fieldName = entry.getKey();
             EntityField entityField = entry.getValue();
-            if (entityField.getIsColumn()) {
+            if (Boolean.TRUE.equals(entityField.getIsColumn())) {
                 Object value =getPublicPro(entity, fieldName);
-                if (null != value) {
-                    Dialect dialect =getDefaultDialect();
+                if (null != value||isBatchGen) {
                     columnSql="`"+entityField.getColumnName()+"`";
-                    if(dialect.getDialogName().equals(ConstantJdbc.Dialog.ORACLE)){
-                        columnSql=entityField.getColumnName();
-                    }
                     columnList.add(columnSql);
                     valueList.add(value);
-                    if(duplicate&&!entityField.getUpdateNotNull()){
+                    if(duplicate&&Boolean.FALSE.equals(entityField.getUpdateNotNull())){
                         columnListUpdate.add(columnSql);
                         valueListUpdate.add(value);
                     }
                 }
             }
         }
-        Dialect dialect =getDefaultDialect();
-        String ext="@mysql";
-        if(dialect.getDialogName().equals(ConstantJdbc.Dialog.ORACLE)){
-            ext="@oracle";
+        if(isBatchOnlyValue){
+            List<Object> allList= new ArrayList<>();
+            allList.addAll(valueList);
+            allList.addAll(valueListUpdate);
+            sqlParmeter.setParameters(allList.toArray());
+            return sqlParmeter;
         }
-        String insertSql = StringUtils.format("insert into {0}({1}) values ({2}) /* {3}  */", tableName, StringUtils.strList(columnList, ","), StringUtils.strNums("?", ",", columnList.size()),ext);
+        String valueSql = getInsertValueSql(columnList,isBatchGen);
+        String insertSql = StringUtils.format("insert into {0}({1}) values ({2})", tableName, StringUtils.strList(columnList, ","), valueSql);
         if(duplicate){
             insertSql=insertSql+" ON DUPLICATE KEY UPDATE "+getSetSql(columnListUpdate);
         }
         String idName = entityInfo.getIdFieldName();
         sqlParmeter.setIdName(idName);
         sqlParmeter.setSql(insertSql);
-        if(!duplicate){
-            sqlParmeter.setParameters(valueList.toArray());
-        }else{
-            List<Object> allList= new ArrayList<>();
-            allList.addAll(valueList);
-            allList.addAll(valueListUpdate);
-            sqlParmeter.setParameters(allList.toArray());
-        }
+        List<Object> allList= new ArrayList<>();
+        allList.addAll(valueList);
+        allList.addAll(valueListUpdate);
+        sqlParmeter.setParameters(allList.toArray());
         return sqlParmeter;
     }
-    private  <T> SqlParmeter generateUpdateEntitySql(T entity,boolean isNullUpdate) {
+
+    private String getInsertValueSql(List<String> columnList,boolean isBatchGen) {
+        StringBuilder fullStr = new StringBuilder();
+        columnList.forEach(column->{
+            String item="?";
+            if(isBatchGen){
+                item=StringUtils.format("IFNULL(?,{0})",column);
+            }
+            fullStr.append(item).append(",");
+        });
+        return fullStr.substring(0, fullStr.length()-",".length());
+    }
+    private  <T> SqlParmeter generateBatchUpdateParam(T entity) {
         SqlParmeter sqlParmeter = new SqlParmeter();
         initEntityInfo(entity.getClass());
-        String entityName = entity.getClass().getSimpleName();
-        EntityInfo entityInfo = entityMap.get(entityName);
+        EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
+        Object idValue =getPublicPro(entity, entityInfo.getIdFieldName());
+        if(null==idValue){
+            throw new MybatisMinRuntimeException("主键值为空！无法更新");
+        }
+        List<Object> params = new ArrayList<>();
+        Map<String, EntityField> entityFieldMap = entityInfo.getFieldMap();
+        for (Map.Entry<String, EntityField> entry : entityFieldMap.entrySet()) {
+            String fieldName = entry.getKey();
+            EntityField entityField = entry.getValue();
+            if (Boolean.TRUE.equals(entityField.getIsColumn())&&Boolean.FALSE.equals(entityField.getIsId())) {
+                Object value =getPublicPro(entity, fieldName);
+                params.add(value);
+            }
+        }
+        params.add(idValue);
+        sqlParmeter.setParameters(params.toArray());
+        return sqlParmeter;
+    }
+    private  <T> SqlParmeter generateUpdateEntitySql(T entity,boolean isNullUpdate,boolean isBatchGen) {
+        SqlParmeter sqlParmeter = new SqlParmeter();
+        initEntityInfo(entity.getClass());
+        EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
         String tableName = entityInfo.getTableName();
         String idColumnName=entityInfo.getIdColumnName();
         Object idValue =getPublicPro(entity, entityInfo.getIdFieldName());
         if(null==idValue){
-            throw new RuntimeException("主键值为空！无法更新");
+            throw new MybatisMinRuntimeException("主键值为空！无法更新");
         }
-        SqlFragment setSqlEntity =getUpdateSetSql(entity, entityInfo, isNullUpdate);
+        SqlFragment setSqlEntity =getUpdateSetSql(entity, entityInfo, isNullUpdate,isBatchGen);
         String setSql=setSqlEntity.getSql();
         List<Object> params= setSqlEntity.getParams();
         params.add(idValue);
@@ -205,36 +321,43 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         sqlParmeter.setParameters(params.toArray());
         return sqlParmeter;
     }
-    private <T> SqlFragment getUpdateSetSql(T entity, EntityInfo entityInfo,boolean isNullUpdate) {
+    private String updateSetValueSql(EntityField entityField,boolean isBatchGen,boolean isNullUpdate){
+        if(!isBatchGen){
+            return StringUtils.format("{0} =?", entityField.getColumnName());
+        }
+        if(isNullUpdate&&Boolean.FALSE.equals(entityField.getUpdateNotNull())){
+            return StringUtils.format("{0} =?", entityField.getColumnName());
+        }
+        return StringUtils.format("{0} =IFNULL(?,{1})", entityField.getColumnName(),entityField.getColumnName());
+    }
+    private <T> SqlFragment getUpdateSetSql(T entity, EntityInfo entityInfo,boolean isNullUpdate,boolean isBatchGen) {
         SqlFragment sqlFragment = new SqlFragment();
-        List<String> setColumnList = new ArrayList<String>();
-        List<Object> params = new ArrayList<Object>();
+        List<String> setColumnList = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
         Map<String, EntityField> entityFieldMap = entityInfo.getFieldMap();
         for (Map.Entry<String, EntityField> entry : entityFieldMap.entrySet()) {
             String fieldName = entry.getKey();
             EntityField entityField = entry.getValue();
-            if (entityField.getIsColumn()) {
-                if (!entityField.getIsId()) {
+            if (Boolean.TRUE.equals(entityField.getIsColumn())&&Boolean.FALSE.equals(entityField.getIsId())) {
                     Object value =getPublicPro(entity, fieldName);
                     if (null != value) {
-                        setColumnList.add(StringUtils.format("{0} =?", entityField.getColumnName()));
+                        setColumnList.add(updateSetValueSql(entityField,isBatchGen,isNullUpdate));
                         params.add(value);
                     }
-                    if(null==value&&isNullUpdate&&!entityField.getUpdateNotNull()){
-                        setColumnList.add(StringUtils.format("{0} =?", entityField.getColumnName()));
+                    if((null==value&&isNullUpdate&&Boolean.FALSE.equals(entityField.getUpdateNotNull()))||null==value&&isBatchGen){
+                        setColumnList.add(updateSetValueSql(entityField,isBatchGen,isNullUpdate));
                         params.add(null);
                     }
-                }
             }
         }
-        String sql = StringUtils.StrList(setColumnList, ",");
+        String sql = StringUtils.strList(setColumnList, ",");
         sqlFragment.setSql(sql);
         sqlFragment.setParams(params);
         return sqlFragment;
     }
 
 
-    private  String getSetSql(	List<String> columnList){
+    private  String getSetSql(List<String> columnList){
         StringBuilder sql=new StringBuilder();
         for (String column: columnList ) {
             sql.append(column+"=?,");
@@ -242,107 +365,89 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         return  sql.substring(0,sql.length()-1);
     }
     //crud end
-    public <T> T queryById(Class<T> type, Object id) {
+    public final <T> T queryById(DataSourceWrapper dataSourceWrapper,Class<T> type, Object id) {
         String sql =generateQueryByIdSql(type);
-        return getJdbcBase().queryOne(type, sql,id);
+        return getJdbcBase().queryOne(dataSourceWrapper,type, sql,id);
     }
-
-
+    public final <T> T queryById(Class<T> type, Object id) {
+        return queryById(null,type, id);
+    }
 
     private String generateQueryByIdSql(Class<?> type){
         initEntityInfo(type);
-        EntityInfo entityInfo = entityMap.get(type.getSimpleName());
+        EntityInfo entityInfo = EntityUtil.getEntityInfo(type);
         String tableName = entityInfo.getTableName();
         if(null==tableName){
-            throw new RuntimeException("未定义实体table注解");
+            throw new MybatisMinRuntimeException("未定义实体table注解");
         }
         String idName = entityInfo.getIdColumnName();
         return StringUtils.format("select * from {0} where  {1} = ?",tableName,idName);
     }
-    public <T> List<T> queryList(Class<T> type, String sqlId, Map<String, Object> parameter) {
+
+    public final <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
-        return findList(type, sqlParmeter.getSql(), sqlParmeter.getParameters());
+        return getJdbcBase().queryList(dataSourceWrapper,type, sqlParmeter.getSql(), sqlParmeter.getParameters());
+    }
+
+    public final <T> List<T> queryList(Class<T> type, String sqlId, Map<String, Object> parameter) {
+        return queryList(null,type, sqlId, parameter);
     }
 
 
-    private  <T> List<T> findList(Class<T> type, String sql, Object... args) {
-        return getJdbcBase().queryList(type, sql, args);
+    public <T> T queryOne(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Map<String, Object> parameter) {
+        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        return getJdbcBase().queryOne(dataSourceWrapper,type, getDefaultDialect().getLimitOne(sqlParmeter.getSql()), sqlParmeter.getParameters());
     }
-
-
     public <T> T queryOne(Class<T> type, String sqlId, Map<String, Object> parameter) {
+        return queryOne(null,type,sqlId,parameter);
+    }
+
+
+    public Map<String, Object> queryMapOne(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
-        return findBean(type, sqlinfo.getSql(), parameter);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
+        return getJdbcBase().queryUniqueResultMap(dataSourceWrapper,getDefaultDialect().getLimitOne(sqlParmeter.getSql()), sqlParmeter.getParameters());
+    }
+    public Map<String, Object> queryMapOne(String sqlId, Map<String, Object> parameter) {
+          return queryMapOne(sqlId, parameter);
     }
 
-
-
-
-
-    private  <T> T findBean(Class<T> type, String sql, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return findBean(type, sqlParmeter.getSql(), sqlParmeter.getParameters());
-    }
-
-
-    private  <T> T findBean(Class<T> type, String sql, Object... args) {
-        sql = getDefaultDialect().getLimitOne(sql);
-        return getJdbcBase().queryOne(type, sql, args);
-    }
-
-    public Map<String, Object> queryOne(String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
-        return findOne(sqlinfo.getSql(), parameter);
-    }
-
-    private Map<String, Object> findOne(String sql, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return findOne(sqlParmeter.getSql(), sqlParmeter.getParameters());
-    }
-
-
-    private Map<String, Object> findOne(String sql, Object... args) {
-        sql = getDefaultDialect().getLimitOne(sql);
-        return getJdbcBase().queryUniqueResultMap(sql, args);
-    }
-
-    private List<Map<String, Object>> findList(String sql, Object... args) {
-        return getJdbcBase().queryListResultMap(sql, args);
-    }
-
-
-    public final Page<Map<String, Object>> queryBigData(String sqlId, AbstractMapPageWork pageWork, Map<String, Object> parameter) {
+    public final List<Map<String, Object>> queryMapList(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
-        return findBigData(sqlInfo.getSql(), pageWork, parameter);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        return getJdbcBase().queryListResultMap(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
+    }
+    public final List<Map<String, Object>> queryMapList(String sqlId, Map<String, Object> parameter) {
+        return queryMapList(null,sqlId,parameter);
     }
 
-    private Page<Map<String, Object>> findBigData(String sql, AbstractMapPageWork pageWork, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return findBigData(sqlParmeter.getSql(), pageWork, sqlParmeter.getParameters());
+
+    public final Page<Map<String, Object>> queryMapBigData(String sqlId, AbstractMapPageWork pageWork, Map<String, Object> parameter){
+        return queryMapBigData(null,sqlId,pageWork,parameter);
     }
 
-    private Page<Map<String, Object>> findBigData(String sql, AbstractMapPageWork pageWork, Object... args) {
-        return getJdbcBase().queryForBigData(sql, pageWork, args);
-    }
-
-    public final <T> Page<T> queryBigData(Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter) {
+    public final Page<Map<String, Object>> queryMapBigData(DataSourceWrapper dataSourceWrapper,String sqlId, AbstractMapPageWork pageWork, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
-        return findBigData(type, sqlInfo.getSql(), pageWork, parameter);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        return getJdbcBase().queryForBigData(dataSourceWrapper,sqlParmeter.getSql(), pageWork, sqlParmeter.getParameters());
     }
 
-    private  <T> Page<T> findBigData(Class<T> type, String sql, AbstractPageWork pageWork, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return findBigData(type, sqlParmeter.getSql(), pageWork, sqlParmeter.getParameters());
+    public final <T> Page<T> queryBigData(Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter){
+        return queryBigData(null,type,sqlId,pageWork,parameter);
     }
 
-    private  <T> Page<T> findBigData(Class<T> type, String sql, AbstractPageWork pageWork, Object... args) {
-        return getJdbcBase().queryForBigData(type, sql, pageWork, args);
+    public final <T> Page<T> queryBigData(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter) {
+        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        return getJdbcBase().queryForBigData(dataSourceWrapper,type, sqlParmeter.getSql(), pageWork, sqlParmeter.getParameters());
     }
 
-
-    public final Page<Map<String, Object>> queryPage(String sqlId, Pageable pageable, Map<String, Object> parameter) {
-
+    public final Page<Map<String, Object>> queryMapPage(String sqlId, Pageable pageable, Map<String, Object> parameter){
+        return  queryMapPage(null,sqlId,pageable,parameter);
+    }
+    public final Page<Map<String, Object>> queryMapPage(DataSourceWrapper dataSourceWrapper,String sqlId, Pageable pageable, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
         SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
         String countSql = countSqlInfo.getSql();
@@ -351,22 +456,9 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
             countSql = null;
             hasCountSqlInMd= false;
         }
-        return findPage(sqlInfo.getSql(), countSql,hasCountSqlInMd, pageable, parameter);
-    }
-
-    public final List<Map<String, Object>> queryList(String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
-        return findList(sqlParmeter.getSql(), sqlParmeter.getParameters());
-    }
-
-
-    private  Page<Map<String, Object>> findPage(String sql, String countSql,boolean hasCountSqlInMd,  Pageable pageable, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        long totalCount = countMySqlResult(sql, countSql, parameter);
-        return findPage(hasCountSqlInMd,sqlParmeter.getSql(), totalCount, pageable, sqlParmeter.getParameters());
-    }
-    private Page<Map<String, Object>> findPage(boolean hasCountSqlInMd,String sql, long totalCount, Pageable pageable, Object... parameter) {
+        long totalCount = countMySqlResult(dataSourceWrapper,sqlInfo.getSql(), countSql, parameter);
+        String sql= sqlParmeter.getSql();
         int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
         int firstEntityIndex = pageable.getPageSize() * pageNum;
         boolean hasLimit =false;
@@ -374,14 +466,16 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
             hasLimit =hasLimit(sql);
         }
         if(!hasCountSqlInMd||!hasLimit){
-
             sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
         }
-        List<Map<String, Object>> entities = findList(sql, parameter);
+        List<Map<String, Object>> entities = getJdbcBase().queryListResultMap(dataSourceWrapper,sql, sqlParmeter.getParameters());
         return new PageImpl<>(entities, pageable, totalCount);
     }
 
-    public <T> Page<T> queryPage(Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter) {
+    public <T> Page<T> queryPage(Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter){
+        return queryPage(null,type,sqlId,pageable,parameter);
+    }
+    public <T> Page<T> queryPage(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
         String countSql = countSqlInfo.getSql();
@@ -390,28 +484,9 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
             countSql = null;
             hasCountSqlInMd= false;
         }
-        return findPage(type, sqlinfo.getSql(), countSql,hasCountSqlInMd, pageable, parameter);
-    }
-
-    private <T> Page<T> findPage(Class<T> type, String sql, String countSql,boolean hasCountSqlInMd,  Pageable pageable, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        long totalCount = countMySqlResult(sql, countSql, parameter);
-        return findPage(type,hasCountSqlInMd, sqlParmeter.getSql(), totalCount, pageable, sqlParmeter.getParameters());
-    }
-
-   private boolean hasLimit(String sql){
-       String lowerSql = sql.toLowerCase();
-       if (lowerSql.contains("limit ")) {
-           return true;
-       }
-       if (lowerSql.contains("limit\n")) {
-           return true;
-       }
-       return false;
-   }
-
-    private <T> Page<T> findPage(Class<T> type,boolean hasCountSqlInMd, String sql, long totalCount, Pageable pageable, Object... parameter) {
-
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
+        long totalCount = countMySqlResult(dataSourceWrapper,sqlinfo.getSql(), countSql, parameter);
+        String sql = sqlParmeter.getSql();
         int pageNum = pageable.getPageNumber() <= 0 ? 0 : pageable.getPageNumber();
         int firstEntityIndex = pageable.getPageSize() * pageNum;
         boolean hasLimit =false;
@@ -421,13 +496,24 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         if(!hasCountSqlInMd||!hasLimit){
             sql = getDefaultDialect().getPageSql(sql, firstEntityIndex, pageable.getPageSize());
         }
-        List<T> entities = findList(type, sql, parameter);
+        List<T> entities = getJdbcBase().queryList(dataSourceWrapper,type,sql, sqlParmeter.getParameters());
         return new PageImpl<>(entities, pageable, totalCount);
     }
 
 
+   private boolean hasLimit(String sql){
+       String lowerSql = sql.toLowerCase();
+       if(lowerSql.contains("limit ")) {
+           return true;
+       }
+       if(lowerSql.contains("limit\n")) {
+           return true;
+       }
+       return false;
+   }
 
-    private long countMySqlResult(String sql, String countSql, Map<String, Object> params) {
+
+    private long countMySqlResult(DataSourceWrapper dataSourceWrapper,String sql, String countSql, Map<String, Object> params) {
         if (params.containsKey(ConstantJdbc.PageParam.COUNT)) {
             countSql = ConvertUtil.toString(params.get(ConstantJdbc.PageParam.COUNT));
         }
@@ -438,82 +524,50 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         Object result = null;
 
         if (!StringUtils.isBlank(countSql)) {
-            result = findBy(countSql, params);
+            result = findBy(dataSourceWrapper,countSql, params);
         }
         if (StringUtils.isBlank(countSql)) {
             SqlParmeter sqlParmeter = getSqlParmeter(sql, params);
             countSql = generateMyCountSql(sqlParmeter.getSql());
-            result = findBy(countSql, sqlParmeter.getParameters());
+            result = getJdbcBase().queryOneColumn(dataSourceWrapper,countSql, 1, sqlParmeter.getParameters());
         }
         if (null == result) {
             return 0L;
         }
         return ConvertUtil.toLong(result);
     }
-    public long countResult(String sqlId,Map<String, Object> params) {
-         SqlInfo sqlInfo= getSqlInfo(sqlId);
-         return countMySqlResult(sqlInfo.getSql(),null,params);
+
+
+    public  <T> T queryOneColumn(Class<?> targetType,String sqlId, Map<String, Object> parameter){
+        return  queryOneColumn(null,targetType,sqlId,parameter);
     }
 
-    private long countMySqlResultInArray(String sql, String countSql, Object... params) {
-        if (!StringUtils.isBlank(countSql) && countSql.startsWith(ConstantJdbc.PageParam.AT)) {
-            return ConvertUtil.toLong(countSql.substring(1));
-        }
-        if (StringUtils.isBlank(countSql)) {
-            countSql = generateMyCountSql(sql);
-        }
-        Object result = findBy(countSql, 1, params);
-        if (null == result) {
-            return 0L;
-        }
-        return ConvertUtil.toLong(result);
-    }
-
-
-    public  <T> T queryOneColumn(Class<?> targetType,String sqlId, Map<String, Object> parameter) {
+    public  <T> T queryOneColumn(DataSourceWrapper dataSourceWrapper,Class<?> targetType,String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
-
-        Object result= findBy(sqlInfo.getSql(), parameter);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        Object result=  getJdbcBase().queryOneColumn(dataSourceWrapper,sqlParmeter.getSql(), 1, sqlParmeter.getParameters());
         return ConvertUtil.toObject(result,targetType);
     }
-
-    private Object findBy(String sql, Map<String, Object> parameter) {
+    private Object findBy(DataSourceWrapper dataSourceWrapper,String sql, Map<String, Object> parameter) {
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return findBy(sqlParmeter.getSql(), sqlParmeter.getParameters());
-    }
-
-    private Object findBy(String sql, Object... params) {
-        return findBy(sql, 1, params);
-    }
-
-    private Object findBy(String sql, int columnIndex, Object... params) {
-        return getJdbcBase().queryOneColumn(sql, columnIndex, params);
+        return getJdbcBase().queryOneColumn(dataSourceWrapper,sqlParmeter.getSql(), 1,  sqlParmeter.getParameters());
     }
 
     private SqlParmeter getSqlParmeter(String sql, Map<String, Object> parameter) {
         return  SqlUtil.getSqlParmeter(sql, parameter);
     }
 
-
-    public <T> Map<String, T> queryToMap(Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter) {
+    public <T> Map<String, T> queryToMap(Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter){
+        return queryToMap(null,c,sqlId,keyInMap,parameter);
+    }
+    public <T> Map<String, T> queryToMap(DataSourceWrapper dataSourceWrapper,Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId);
-        return queryBySql(c, sqlInfo.getSql(), keyInMap, parameter);
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
+        return getJdbcBase().queryMapList(dataSourceWrapper,c, sqlParmeter.getSql(), keyInMap, sqlParmeter.getParameters());
     }
-
-    private  <T> Map<String, T> queryBySql(Class<T> c, String sql, String keyInMap, Map<String, Object> parameter) {
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        Map<String, T> result = getJdbcBase().queryMapList(c, sqlParmeter.getSql(), keyInMap, sqlParmeter.getParameters());
-        return result;
-    }
-
     private SqlInfo getSqlInfo(String sqlId) {
-      /*  String modulePath=modulePath();
-        if(!sqlId.contains(".")&&!StringUtils.isBlank(modulePath)){
-            sqlId=modulePath+"."+sqlId;
-        }*/
         return MarkdownUtil.getSqlInfo(sqlId);
     }
-
 
     private String generateMyCountSql(String sql) {
         StringBuilder sb= new StringBuilder();
@@ -526,24 +580,64 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         return sb.toString()+countSqlParser.getSmartCountSql(sql);
     }
 
-
-  /*  private void logSql(String sql, Object... params) {
-        logger.info("\n原始sql为:\n{}\n参数为:{}\n生成的sql为:\n{}", sql, params, SqlFill.fill(sql, params));
-    }*/
-
-
-    public int update(String sqlId, Map<String, Object> parameter) {
+    public <T> int batchUpdate(DataSourceWrapper dataSourceWrapper,String sqlId,List<T> entityList){
+        if(null==entityList||entityList.isEmpty()){
+            return 0;
+        }
         SqlInfo sqlinfo = getSqlInfo(sqlId);
-        String sql = sqlinfo.getSql();
-        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return getJdbcBase().update(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        Map<String,Object> map=new HashMap<>();
+        try {
+            map = ConvertMap.toMap(entityList.get(0).getClass(),entityList.get(0));
+        } catch (IntrospectionException e) {
+            log.error("IntrospectionException ",e);
+        }
+        SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), map);
+        String sql= sqlParmeter.getSql();
+        List<Object[]> param= new ArrayList<>();
+        int i =0;
+        List<List<Object[]>> listSplit= new ArrayList<>();
+        int batchSize=batchSize();
+        for (T t: entityList) {
+            if (i != 0 && i % batchSize == 0) {
+                listSplit.add(param);
+                param = new ArrayList<>();
+            }
+            param.add(beanToObjects(t,sqlParmeter.getPropertyNames()));
+            i++;
+        }
+        if(!param.isEmpty()){
+            listSplit.add(param);
+        }
+        for (List<Object[]> item:listSplit) {
+            int[] result =getJdbcBase().updateBatch(dataSourceWrapper,sql,item);
+            log.info("\nbatchUpdateBySql {}",result);
+        }
+        return 1;
     }
-
-    public Object insert(String sqlId, Map<String, Object> parameter) {
+    private <T> Object[] beanToObjects(T t,List<String> propertyNames){
+        List<Object> result = new ArrayList<>();
+        propertyNames.forEach(propertyName->{
+            result.add(Constant.BeanUtils.getProperty(t,propertyName));
+        });
+        return result.toArray();
+    }
+    public int update(String sqlId, Map<String, Object> parameter){
+        return update(null,sqlId,parameter);
+    }
+    public int update(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId);
         String sql = sqlinfo.getSql();
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
-        return getJdbcBase().insert(sqlParmeter.getSql(), sqlParmeter.getParameters());
+        return getJdbcBase().update(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
+    }
+    public Object insert(String sqlId, Map<String, Object> parameter) {
+        return insert(null,sqlId,parameter);
+    }
+    public Object insert(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter) {
+        SqlInfo sqlinfo = getSqlInfo(sqlId);
+        String sql = sqlinfo.getSql();
+        SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
+        return getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
 
 }

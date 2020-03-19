@@ -16,6 +16,7 @@
 
 package com.vonchange.jdbc.abstractjdbc.template;
 
+import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.dao.support.DataAccessUtils;
@@ -943,31 +944,18 @@ public class YhJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 					InterruptibleBatchPreparedStatementSetter ipss =
 							(pss instanceof InterruptibleBatchPreparedStatementSetter ?
 							(InterruptibleBatchPreparedStatementSetter) pss : null);
-					if (JdbcUtils.supportsBatchUpdates(ps.getConnection())) {
-						for (int i = 0; i < batchSize; i++) {
+					boolean supportBatchUpdate =JdbcUtils.supportsBatchUpdates(ps.getConnection());
+					if(!supportBatchUpdate){
+						  throw new MybatisMinRuntimeException("jdbc 不支持 batchUpdate");
+					}
+					for (int i = 0; i < batchSize; i++) {
 							pss.setValues(ps, i);
 							if (ipss != null && ipss.isBatchExhausted(i)) {
 								break;
 							}
 							ps.addBatch();
-						}
-						return ps.executeBatch();
 					}
-					else {
-						List<Integer> rowsAffected = new ArrayList<Integer>();
-						for (int i = 0; i < batchSize; i++) {
-							pss.setValues(ps, i);
-							if (ipss != null && ipss.isBatchExhausted(i)) {
-								break;
-							}
-							rowsAffected.add(ps.executeUpdate());
-						}
-						int[] rowsAffectedArray = new int[rowsAffected.size()];
-						for (int i = 0; i < rowsAffectedArray.length; i++) {
-							rowsAffectedArray[i] = rowsAffected.get(i);
-						}
-						return rowsAffectedArray;
-					}
+					return ps.executeBatch();
 				}
 				finally {
 					if (pss instanceof ParameterDisposer) {

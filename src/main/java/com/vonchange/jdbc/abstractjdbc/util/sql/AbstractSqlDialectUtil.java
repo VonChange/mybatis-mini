@@ -23,7 +23,7 @@ public abstract class AbstractSqlDialectUtil {
     public   String getDataSource(String sql){
         if(sql.contains(ConstantJdbc.DataSource.FLAG)){
             int start=sql.indexOf(ConstantJdbc.DataSource.FLAG);
-            int end = sql.indexOf(" ",start+ConstantJdbc.DataSource.FLAG.length());
+            int end = sql.indexOf(' ',start+ConstantJdbc.DataSource.FLAG.length());
             return  sql.substring(start+ConstantJdbc.DataSource.FLAG.length(),end);
         }
         if(null==getDataSource()){

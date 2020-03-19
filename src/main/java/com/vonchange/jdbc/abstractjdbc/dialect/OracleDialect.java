@@ -10,17 +10,6 @@ import com.vonchange.mybatis.common.util.StringUtils;
  * Created by 冯昌义 on 2018/4/16.
  */
 public class OracleDialect implements Dialect {
- /*   @Override
-    public String getPageSql(String sql, int beginNo, int pageSize) {
-        if(beginNo==0){
-           String  sqlLimit="select row_.*,rownum rn_ from ({0})  row_" +
-                    " where rownum <= {1} " ;
-            return 	StringUtil.format(sqlLimit, sql, ConvertUtil.toString(beginNo+pageSize));
-        }
-        String sqlOrg="select * from (select row_.*,rownum rn_ from ({0})  row_" +
-                " where rownum <= {1})  where rn_ > {2} " ;
-        return 	StringUtil.format(sqlOrg, sql, ConvertUtil.toString(beginNo+pageSize), ConvertUtil.toString(beginNo));
-    }*/
     @Override
     public String getPageSql(String sql, int beginNo, int pageSize) {
         if(beginNo==0){

@@ -16,12 +16,10 @@ public class SqlFill {
         @Override
         protected DateFormat initialValue() {
             return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            //return  DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
         }
     };
 
-    //private static DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-    private static String getParameterValue(Object obj) {
+   private static String getParameterValue(Object obj) {
         if(null==obj){
             return "''";
         }
@@ -30,12 +28,11 @@ public class SqlFill {
             return "'" + threadFormater.get().format(obj) + "'";
         }
         if (obj instanceof String) {
-            //value = obj.toString().replaceAll("([';])+|(--)+", "");
             // 排除恶意sql漏洞
             //return "'" + obj.toString().replaceAll("([';])+|(--)+", "") + "'";
             return "'" + obj.toString() + "'";
         }
-        return "'" + obj.toString() + "'";
+       return  obj.toString() ;
     }
 
     public static String fill(String source, Object[] params) {

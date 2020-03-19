@@ -26,6 +26,7 @@ public class MybatisTplImpl implements Tpl {
         logger.debug("use mybatis sql generate::: {}", sqlWithParam.getSql());
         sqlParmeter.setSql(sqlWithParam.getSql());
         sqlParmeter.setParameters(sqlWithParam.getParams());
+        sqlParmeter.setPropertyNames(sqlWithParam.getPropertyNames());
         return sqlParmeter;
     }
 }
