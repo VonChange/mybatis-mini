@@ -129,15 +129,15 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         }
         return  1;
     }
-    public final <T> T  insert(DataSourceWrapper dataSourceWrapper,T entity) {
+    public final <T> Object  insert(DataSourceWrapper dataSourceWrapper,T entity) {
         SqlParmeter sqlParmeter = generateInsertSql(entity,false,false,false);
-        Object id=getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
+        Object id= getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
         if(null!=id){
             Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
         }
-        return entity;
+        return Constant.BeanUtils.getProperty(entity,sqlParmeter.getIdName());
     }
-    public final <T> T  insert(T entity) {
+    public final <T> Object  insert(T entity) {
         return insert(null,entity);
     }
 
@@ -195,16 +195,16 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     public final <T> int  updateAllField(T entity) {
         return  updateAllField(null,entity);
     }
-    public  final <T> T  insertDuplicateKey(T entity) {
+    public  final <T> Object insertDuplicateKey(T entity) {
         return insertDuplicateKey(null,entity);
     }
-    public final  <T> T  insertDuplicateKey(DataSourceWrapper dataSourceWrapper,T entity) {
+    public final <T>  Object insertDuplicateKey(DataSourceWrapper dataSourceWrapper, T entity) {
         SqlParmeter sqlParmeter = generateInsertSql(entity,true,false,false);
-        Object id=getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
+        Object id= getJdbcBase().insert(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
         if(null!=id){
             Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
         }
-        return entity;
+        return Constant.BeanUtils.getProperty(entity,sqlParmeter.getIdName());
     }
     private void initEntityInfo(Class<?> clazz) {
         if(needInitEntityInfo()){
