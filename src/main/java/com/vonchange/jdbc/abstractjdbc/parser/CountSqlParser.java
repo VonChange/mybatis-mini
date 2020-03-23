@@ -32,6 +32,8 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,7 @@ import java.util.List;
  * @author liuzh
  */
 public class CountSqlParser {
+    private static final Logger log = LoggerFactory.getLogger(CountSqlParser.class);
     private static final String KEEP_ORDERBY = "/*keep orderby*/";
     private static final String KEEP_SMART = "/*rx*/";
     private static final Alias TABLE_ALIAS;
@@ -94,7 +97,7 @@ public class CountSqlParser {
             sql= p.matcher(sql).replaceAll("$1");*/
             stmt = CCJSqlParserUtil.parse(sql);
         } catch (Exception e) {
-            //e.printStackTrace();
+            log.debug("无法解析 使用一般方法返回count语句");
             //无法解析的用一般方法返回count语句
             return getSimpleCountSql(sql);
         }
@@ -104,6 +107,7 @@ public class CountSqlParser {
             //处理body-去order by
             processSelectBody(selectBody);
         } catch (Exception e) {
+            log.debug("当sql包含group by时 不去除order by");
             //当 sql 包含 group by 时，不去除 order by
             return getSimpleCountSql(sql);
         }
