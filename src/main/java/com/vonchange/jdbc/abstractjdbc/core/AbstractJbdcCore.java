@@ -2,6 +2,7 @@ package com.vonchange.jdbc.abstractjdbc.core;
 
 
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
+import com.vonchange.jdbc.abstractjdbc.config.Constants;
 import com.vonchange.jdbc.abstractjdbc.dialect.Dialect;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractMapPageWork;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractPageWork;
@@ -58,8 +59,8 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
                 if (null == jdbcBase) {
                     jdbcBase = new JdbcBaseImpl() {
                         @Override
-                        protected YhJdbcTemplate initJdbcTemplate(DataSourceWrapper dataSourceWrapper,String sql) {
-                            return  getJdbcTemplate(dataSourceWrapper,sql);
+                        protected YhJdbcTemplate initJdbcTemplate(DataSourceWrapper dataSourceWrapper,Constants.EnumRWType enumRWType,String sql) {
+                            return  getJdbcTemplate(dataSourceWrapper,enumRWType,sql);
                         }
                     };
                 }
@@ -70,7 +71,8 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
 
 
     private  static Map<String,YhJdbcTemplate> yhJdbcTemplateMap=new ConcurrentHashMap<>();
-    private DataSourceWrapper getDataSourceWrapper(DataSourceWrapper dataSourceWrapper,String sql){
+    private DataSourceWrapper getDataSourceWrapper(DataSourceWrapper dataSourceWrapper, Constants.EnumRWType enumRWType,
+                                                   String sql){
         if(null!=dataSourceWrapper){
             return dataSourceWrapper;
         }
@@ -79,14 +81,14 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         if(null!=dataSourceFromSql){
             return dataSourceFromSql;
         }
-        return getWriteDataSource();
         //去除 直接读随机数据源 主从有延迟 还是需要根据业务指定数据源
-       /* if(enumRWType.equals(Constants.EnumRWType.read)){
-            dataSource = getReadDataSource();
-        }*/
+        if(enumRWType.equals(Constants.EnumRWType.read)){
+            return  getReadDataSource();
+        }
+        return getWriteDataSource();
     }
-    private YhJdbcTemplate getJdbcTemplate(DataSourceWrapper dataSourceWrapper,String sql) {
-        DataSourceWrapper dataSource=getDataSourceWrapper(dataSourceWrapper,sql);
+    private YhJdbcTemplate getJdbcTemplate(DataSourceWrapper dataSourceWrapper,Constants.EnumRWType enumRWType,String sql) {
+        DataSourceWrapper dataSource=getDataSourceWrapper(dataSourceWrapper,enumRWType,sql);
         log.debug("\n====== use dataSource key {}",dataSource.getKey());
         if(yhJdbcTemplateMap.containsKey(dataSource.getKey())){
             return yhJdbcTemplateMap.get(dataSource.getKey());
@@ -157,7 +159,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         if(null==entityList||entityList.isEmpty()){
             return 0;
         }
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entityList.get(0),isNullUpdate,true);
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entityList.get(0),isNullUpdate);
         String sql= sqlParmeter.getSql();
         List<Object[]> list = new ArrayList<>();
         int i =0;
@@ -182,14 +184,14 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         return  1;
     }
     public final <T> int  update(DataSourceWrapper dataSourceWrapper,T entity) {
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,false,false);
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,false);
         return  getJdbcBase().update(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
     public final <T> int  update(T entity) {
         return update(null,entity);
     }
     public final <T> int  updateAllField(DataSourceWrapper dataSourceWrapper,T entity) {
-        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,true,false);
+        SqlParmeter sqlParmeter = generateUpdateEntitySql(entity,true);
         return  getJdbcBase().update(dataSourceWrapper,sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
     public final <T> int  updateAllField(T entity) {
@@ -218,31 +220,32 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         }
         return Constant.BeanUtils.getProperty(bean, name);
     }
-
+    //private String
     private  <T> SqlParmeter generateInsertSql(T entity,boolean duplicate,boolean isBatchGen,boolean isBatchOnlyValue) {
         initEntityInfo(entity.getClass());
         SqlParmeter sqlParmeter = new SqlParmeter();
         List<String> columnList = new ArrayList<>();
         List<Object> valueList = new ArrayList<>();
-        List<String> columnListUpdate = new ArrayList<>();
         List<Object> valueListUpdate = new ArrayList<>();
         EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
         String tableName = entityInfo.getTableName();
         Map<String, EntityField> entityFieldMap = entityInfo.getFieldMap();
         String columnSql;
+        List<EntityField> entityFieldList=new ArrayList<>();
+        List<EntityField> updateEntityFieldList= new ArrayList<>();
         for (Map.Entry<String, EntityField> entry : entityFieldMap.entrySet()) {
             String fieldName = entry.getKey();
             EntityField entityField = entry.getValue();
             if (Boolean.TRUE.equals(entityField.getIsColumn())) {
                 Object value =getPublicPro(entity, fieldName);
-                if (null != value||isBatchGen) {
-                    columnSql="`"+entityField.getColumnName()+"`";
-                    columnList.add(columnSql);
-                    valueList.add(value);
-                    if(duplicate&&Boolean.FALSE.equals(entityField.getUpdateNotNull())){
-                        columnListUpdate.add(columnSql);
-                        valueListUpdate.add(value);
-                    }
+                //if (null != value||isBatchGen) {
+                columnSql="`"+entityField.getColumnName()+"`";
+                columnList.add(columnSql);
+                valueList.add(value);
+                entityFieldList.add(entityField);
+                if(duplicate){//&&Boolean.FALSE.equals(entityField.getUpdateNotNull())
+                    updateEntityFieldList.add(entityField);
+                    valueListUpdate.add(value);
                 }
             }
         }
@@ -253,10 +256,10 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
             sqlParmeter.setParameters(allList.toArray());
             return sqlParmeter;
         }
-        String valueSql = getInsertValueSql(columnList,isBatchGen);
+        String valueSql = getInsertValueSql(entityFieldList);
         String insertSql = StringUtils.format("insert into {0}({1}) values ({2})", tableName, StringUtils.strList(columnList, ","), valueSql);
         if(duplicate){
-            insertSql=insertSql+" ON DUPLICATE KEY UPDATE "+getSetSql(columnListUpdate);
+            insertSql=insertSql+" ON DUPLICATE KEY UPDATE "+getSetSql(updateEntityFieldList);
         }
         String idName = entityInfo.getIdFieldName();
         sqlParmeter.setIdName(idName);
@@ -267,17 +270,42 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         sqlParmeter.setParameters(allList.toArray());
         return sqlParmeter;
     }
-
-    private String getInsertValueSql(List<String> columnList,boolean isBatchGen) {
+    private  String getSetSql(List<EntityField> entityFieldList ){
+        StringBuilder sql=new StringBuilder();
+        for (EntityField entityField: entityFieldList ) {
+            sql.append("`").append(entityField.getColumnName()).append("`")
+                    .append(StringUtils.format("=IFNULL(?,{0})",updateIfNullValue(entityField,false)))
+            .append(",");
+        }//.append("=?,");
+        return  sql.substring(0,sql.length()-1);
+    }
+    private String updateIfNullValue(EntityField entityField,boolean nullUpdate){
+        if(StringUtils.isNotBlank(entityField.getUpdateIfNullFunc())){
+            return entityField.getUpdateIfNullFunc();
+        }
+        if(StringUtils.isNotBlank(entityField.getUpdateIfNull())){
+            return "'"+entityField.getUpdateIfNull()+"'";
+        }
+        if(nullUpdate&&Boolean.FALSE.equals(entityField.getUpdateNotNull())){
+            return  "NULL";
+        }
+        return  "`"+entityField.getColumnName()+"`";
+    }
+    private String insertIfNullValue(EntityField entityField){
+        if(StringUtils.isNotBlank(entityField.getInsertIfNullFunc())){
+            return entityField.getInsertIfNullFunc();
+        }
+        if(StringUtils.isNotBlank(entityField.getInsertIfNull())){
+            return "'"+entityField.getInsertIfNull()+"'";
+        }
+        return  "`"+entityField.getColumnName()+"`";
+    }
+    private String getInsertValueSql(List<EntityField> entityFieldList) {
         StringBuilder fullStr = new StringBuilder();
-        columnList.forEach(column->{
-            String item="?";
-            if(isBatchGen){
-                item=StringUtils.format("IFNULL(?,{0})",column);
-            }
-            fullStr.append(item).append(",");
+        entityFieldList.forEach(entityField->{
+            fullStr.append(StringUtils.format("IFNULL(?,{0})",insertIfNullValue(entityField))).append(",");
         });
-        return fullStr.substring(0, fullStr.length()-",".length());
+        return fullStr.substring(0, fullStr.length()-1);
     }
     private  <T> SqlParmeter generateBatchUpdateParam(T entity) {
         SqlParmeter sqlParmeter = new SqlParmeter();
@@ -301,7 +329,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         sqlParmeter.setParameters(params.toArray());
         return sqlParmeter;
     }
-    private  <T> SqlParmeter generateUpdateEntitySql(T entity,boolean isNullUpdate,boolean isBatchGen) {
+    private  <T> SqlParmeter generateUpdateEntitySql(T entity,boolean isNullUpdate) {
         SqlParmeter sqlParmeter = new SqlParmeter();
         initEntityInfo(entity.getClass());
         EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
@@ -311,7 +339,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         if(null==idValue){
             throw new MybatisMinRuntimeException("主键值为空！无法更新");
         }
-        SqlFragment setSqlEntity =getUpdateSetSql(entity, entityInfo, isNullUpdate,isBatchGen);
+        SqlFragment setSqlEntity =getUpdateSetSql(entity, entityInfo, isNullUpdate);
         String setSql=setSqlEntity.getSql();
         List<Object> params= setSqlEntity.getParams();
         params.add(idValue);
@@ -321,16 +349,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         sqlParmeter.setParameters(params.toArray());
         return sqlParmeter;
     }
-    private String updateSetValueSql(EntityField entityField,boolean isBatchGen,boolean isNullUpdate){
-        if(!isBatchGen){
-            return StringUtils.format("{0} =?", entityField.getColumnName());
-        }
-        if(isNullUpdate&&Boolean.FALSE.equals(entityField.getUpdateNotNull())){
-            return StringUtils.format("{0} =?", entityField.getColumnName());
-        }
-        return StringUtils.format("{0} =IFNULL(?,{1})", entityField.getColumnName(),entityField.getColumnName());
-    }
-    private <T> SqlFragment getUpdateSetSql(T entity, EntityInfo entityInfo,boolean isNullUpdate,boolean isBatchGen) {
+    private <T> SqlFragment getUpdateSetSql(T entity, EntityInfo entityInfo,boolean isNullUpdate) {
         SqlFragment sqlFragment = new SqlFragment();
         List<String> setColumnList = new ArrayList<>();
         List<Object> params = new ArrayList<>();
@@ -340,14 +359,9 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
             EntityField entityField = entry.getValue();
             if (Boolean.TRUE.equals(entityField.getIsColumn())&&Boolean.FALSE.equals(entityField.getIsId())) {
                     Object value =getPublicPro(entity, fieldName);
-                    if (null != value) {
-                        setColumnList.add(updateSetValueSql(entityField,isBatchGen,isNullUpdate));
-                        params.add(value);
-                    }
-                    if((null==value&&isNullUpdate&&Boolean.FALSE.equals(entityField.getUpdateNotNull()))||null==value&&isBatchGen){
-                        setColumnList.add(updateSetValueSql(entityField,isBatchGen,isNullUpdate));
-                        params.add(null);
-                    }
+                    setColumnList.add(StringUtils.format("{0} =IFNULL(?,{1})",
+                                "`"+entityField.getColumnName()+"`",updateIfNullValue(entityField,isNullUpdate)));
+                    params.add(value);
             }
         }
         String sql = StringUtils.strList(setColumnList, ",");
@@ -357,13 +371,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     }
 
 
-    private  String getSetSql(List<String> columnList){
-        StringBuilder sql=new StringBuilder();
-        for (String column: columnList ) {
-            sql.append(column+"=?,");
-        }
-        return  sql.substring(0,sql.length()-1);
-    }
+
     //crud end
     public final <T> T queryById(DataSourceWrapper dataSourceWrapper,Class<T> type, Object id) {
         String sql =generateQueryByIdSql(type);

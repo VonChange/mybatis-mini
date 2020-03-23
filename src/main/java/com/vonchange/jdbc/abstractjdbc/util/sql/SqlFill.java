@@ -21,7 +21,7 @@ public class SqlFill {
 
    private static String getParameterValue(Object obj) {
         if(null==obj){
-            return "''";
+            return "NULL";
         }
         if(obj instanceof Date){
 
