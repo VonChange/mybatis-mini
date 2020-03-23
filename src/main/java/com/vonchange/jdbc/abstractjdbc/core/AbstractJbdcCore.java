@@ -49,6 +49,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     public abstract DataSourceWrapper getReadDataSource();
     protected abstract DataSourceWrapper getWriteDataSource();
     protected abstract boolean needInitEntityInfo();
+    protected abstract boolean readAllScopeOpen();
     protected abstract int batchSize();
     protected abstract  DataSourceWrapper getDataSourceFromSql(String sql);
 
@@ -82,7 +83,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
             return dataSourceFromSql;
         }
         //去除 直接读随机数据源 主从有延迟 还是需要根据业务指定数据源
-        if(enumRWType.equals(Constants.EnumRWType.read)){
+        if(enumRWType.equals(Constants.EnumRWType.read)&&readAllScopeOpen()){
             return  getReadDataSource();
         }
         return getWriteDataSource();
