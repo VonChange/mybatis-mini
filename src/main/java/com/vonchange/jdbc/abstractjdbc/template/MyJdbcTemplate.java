@@ -86,7 +86,7 @@ import java.util.*;
  * @see RowMapper
  * @see org.springframework.jdbc.support.SQLExceptionTranslator
  */
-public class YhJdbcTemplate extends JdbcAccessor implements JdbcOperations {
+public class MyJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 
 	private static final String RETURN_RESULT_SET_PREFIX = "#result-set-";
 
@@ -144,7 +144,7 @@ public class YhJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * <p>Note: The DataSource has to be set before using the instance.
 	 * @see #setDataSource
 	 */
-	public YhJdbcTemplate() {
+	public MyJdbcTemplate() {
 	}
 
 	/**
@@ -152,7 +152,7 @@ public class YhJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * <p>Note: This will not trigger initialization of the exception translator.
 	 * @param dataSource the JDBC DataSource to obtain connections from
 	 */
-	public YhJdbcTemplate(DataSource dataSource) {
+	public MyJdbcTemplate(DataSource dataSource) {
 		setDataSource(dataSource);
 		afterPropertiesSet();
 	}
@@ -164,7 +164,7 @@ public class YhJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * @param dataSource the JDBC DataSource to obtain connections from
 	 * @param lazyInit whether to lazily initialize the SQLExceptionTranslator
 	 */
-	public YhJdbcTemplate(DataSource dataSource, boolean lazyInit) {
+	public MyJdbcTemplate(DataSource dataSource, boolean lazyInit) {
 		setDataSource(dataSource);
 		setLazyInit(lazyInit);
 		afterPropertiesSet();

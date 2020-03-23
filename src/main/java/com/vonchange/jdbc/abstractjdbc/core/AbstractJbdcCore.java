@@ -10,7 +10,7 @@ import com.vonchange.jdbc.abstractjdbc.model.DataSourceWrapper;
 import com.vonchange.jdbc.abstractjdbc.model.SqlFragment;
 import com.vonchange.jdbc.abstractjdbc.model.SqlParmeter;
 import com.vonchange.jdbc.abstractjdbc.parser.CountSqlParser;
-import com.vonchange.jdbc.abstractjdbc.template.YhJdbcTemplate;
+import com.vonchange.jdbc.abstractjdbc.template.MyJdbcTemplate;
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
 import com.vonchange.jdbc.abstractjdbc.util.SqlUtil;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.MarkdownUtil;
@@ -59,7 +59,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
                 if (null == jdbcBase) {
                     jdbcBase = new JdbcBaseImpl() {
                         @Override
-                        protected YhJdbcTemplate initJdbcTemplate(DataSourceWrapper dataSourceWrapper,Constants.EnumRWType enumRWType,String sql) {
+                        protected MyJdbcTemplate initJdbcTemplate(DataSourceWrapper dataSourceWrapper, Constants.EnumRWType enumRWType, String sql) {
                             return  getJdbcTemplate(dataSourceWrapper,enumRWType,sql);
                         }
                     };
@@ -70,7 +70,7 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
     }
 
 
-    private  static Map<String,YhJdbcTemplate> yhJdbcTemplateMap=new ConcurrentHashMap<>();
+    private  static Map<String, MyJdbcTemplate> yhJdbcTemplateMap=new ConcurrentHashMap<>();
     private DataSourceWrapper getDataSourceWrapper(DataSourceWrapper dataSourceWrapper, Constants.EnumRWType enumRWType,
                                                    String sql){
         if(null!=dataSourceWrapper){
@@ -87,18 +87,18 @@ public abstract class AbstractJbdcCore implements JdbcRepository{
         }
         return getWriteDataSource();
     }
-    private YhJdbcTemplate getJdbcTemplate(DataSourceWrapper dataSourceWrapper,Constants.EnumRWType enumRWType,String sql) {
+    private MyJdbcTemplate getJdbcTemplate(DataSourceWrapper dataSourceWrapper, Constants.EnumRWType enumRWType, String sql) {
         DataSourceWrapper dataSource=getDataSourceWrapper(dataSourceWrapper,enumRWType,sql);
         log.debug("\n====== use dataSource key {}",dataSource.getKey());
         if(yhJdbcTemplateMap.containsKey(dataSource.getKey())){
             return yhJdbcTemplateMap.get(dataSource.getKey());
         }
         //缓存？
-        YhJdbcTemplate yhJdbcTemplate = new YhJdbcTemplate(dataSource.getDataSource());
-        yhJdbcTemplate.setFetchSizeBigData(getDefaultDialect().getBigDataFetchSize());
-        yhJdbcTemplate.setFetchSize(getDefaultDialect().getFetchSize());
-        yhJdbcTemplateMap.put(dataSource.getKey(),yhJdbcTemplate);
-        return yhJdbcTemplate;
+        MyJdbcTemplate myJdbcTemplate = new MyJdbcTemplate(dataSource.getDataSource());
+        myJdbcTemplate.setFetchSizeBigData(getDefaultDialect().getBigDataFetchSize());
+        myJdbcTemplate.setFetchSize(getDefaultDialect().getFetchSize());
+        yhJdbcTemplateMap.put(dataSource.getKey(), myJdbcTemplate);
+        return myJdbcTemplate;
     }
     public final <T> int  insertBatch(List<T> entityList){
         return insertBatch(null,entityList);
