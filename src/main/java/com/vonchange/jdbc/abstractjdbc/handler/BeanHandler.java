@@ -16,12 +16,13 @@
  */
 package com.vonchange.jdbc.abstractjdbc.handler;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
@@ -33,6 +34,7 @@ import java.sql.SQLException;
  */
 public class BeanHandler<T> implements ResultSetExtractor<T> {
 
+	private static final Logger log = LoggerFactory.getLogger(BeanHandler.class);
 	/**
 	 * The Class of beans produced by this handler.
 	 */
@@ -62,18 +64,11 @@ public class BeanHandler<T> implements ResultSetExtractor<T> {
 
 	private T toBean(ResultSet rs, Class<? extends T> type) throws SQLException {
 		BeanProcessor beanProcessor = new BeanProcessor();
-		ResultSetMetaData rsmd = rs.getMetaData();
 		T entity = null;
 		try {
-			entity = beanProcessor.createBean(rs, rsmd, type);
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		} catch (IntrospectionException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			entity = beanProcessor.createBean(rs, type);
+		} catch (IntrospectionException|InstantiationException|IllegalAccessException e) {
+			log.error("exception",e);
 		}
 		return entity;
 	}

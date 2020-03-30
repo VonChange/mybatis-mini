@@ -8,7 +8,7 @@ import com.vonchange.mybatis.common.util.StringUtils;
 /**
  *mysql方言
  * @author von_change@163.com
- * @date 2015-6-14 下午12:47:21
+ *  2015-6-14 下午12:47:21
  */
 public class MySQLDialect implements Dialect {
 
@@ -17,9 +17,13 @@ public class MySQLDialect implements Dialect {
     	return 	StringUtils.format("{0} limit {1},{2} ", sql, ConvertUtil.toString(beginNo), ConvertUtil.toString(pageSize));
     }
 
+    /**
+     * getPageSql(sql,0,1);
+     * @param sql
+     */
     @Override
     public String getLimitOne(String sql) {
-        return sql;//getPageSql(sql,0,1);
+        return sql;
     }
 
     @Override

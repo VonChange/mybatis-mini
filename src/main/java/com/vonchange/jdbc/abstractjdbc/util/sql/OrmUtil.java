@@ -9,7 +9,7 @@ import jodd.util.StringUtil;
  * Orm组件
  * 
  * @author von_change@163.com
- * @date 2015-6-14 下午1:02:52
+ * 2015-6-14 下午1:02:52
  */
 public class OrmUtil {
 	/**
@@ -94,17 +94,6 @@ public class OrmUtil {
 		return StringUtil.capitalize(toUp(tableName));
 	}
 
-	public static void main(String[] args) {
-		System.out.println(toUp("goods_name"));
-		System.out.println(toFiled("goods_name"));
-		System.out.println(toEntity("goods_name"));
-		String sql="test @ds:mysql ";
-		if(sql.contains("@ds:")){
-			int start=sql.indexOf("@ds:");
-			int end = sql.indexOf(" ",start+"@ds:".length());
-			System.out.println(sql.substring(start+"@ds:".length(),end));
-		}
-	}
 
 
 }

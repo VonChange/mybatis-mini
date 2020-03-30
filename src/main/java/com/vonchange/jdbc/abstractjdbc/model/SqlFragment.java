@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * sql片段实体
  * @author von_change@163.com
- * @date 2015-6-14 下午12:45:34
+ * 2015-6-14 下午12:45:34
  */
 public class SqlFragment {
 	private String sql;

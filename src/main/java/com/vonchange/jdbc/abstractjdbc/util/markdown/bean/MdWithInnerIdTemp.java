@@ -5,9 +5,7 @@ import com.vonchange.jdbc.abstractjdbc.util.markdown.MarkdownDTO;
 
 /**
  * @author 冯昌义
- * @brief
- * @details
- * @date 2017/12/14.
+ *  2017/12/14.
  */
 public class MdWithInnerIdTemp {
     private  String innnerId;

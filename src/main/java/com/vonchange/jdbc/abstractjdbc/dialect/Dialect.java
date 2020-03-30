@@ -4,7 +4,7 @@ package com.vonchange.jdbc.abstractjdbc.dialect;
 /**
  *方言接口
  * @author von_change@163.com
- * @date 2015-6-14 下午12:46:50
+ * 2015-6-14 下午12:46:50
  */
 public interface Dialect {
 

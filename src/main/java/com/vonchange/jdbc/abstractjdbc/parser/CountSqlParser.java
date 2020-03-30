@@ -58,7 +58,6 @@ public class CountSqlParser {
      * 获取智能的countSql
      *
      * @param sql
-     * @return
      */
     public String getSmartCountSql(String sql) {
         return getSmartCountSql(sql, "0");
@@ -69,7 +68,6 @@ public class CountSqlParser {
      *
      * @param sql
      * @param name 列名，默认 0
-     * @return
      */
     public String getSmartCountSql(String sql, String name) {
         //解析SQL
@@ -175,7 +173,8 @@ public class CountSqlParser {
         int end = lowerSql.length();
         int orderIndex=0;
         if (guoIndex > 0) {
-            orderIndex=sql.substring(guoIndex).lastIndexOf("order ");
+            orderIndex=sql.lastIndexOf("order ",guoIndex);
+                    //sql.substring(guoIndex).lastIndexOf("order ");
             if(orderIndex>0){
                 end = guoIndex + orderIndex;
             }
@@ -192,7 +191,6 @@ public class CountSqlParser {
      * 是否可以用简单的count查询方式
      *
      * @param select
-     * @return
      */
     public boolean isSimpleCount(PlainSelect select) {
         //包含group by的时候不可以
@@ -315,7 +313,6 @@ public class CountSqlParser {
      * 判断Orderby是否包含参数，有参数的不能去
      *
      * @param orderByElements
-     * @return
      */
     public boolean orderByHashParameters(List<OrderByElement> orderByElements) {
         if (orderByElements == null) {

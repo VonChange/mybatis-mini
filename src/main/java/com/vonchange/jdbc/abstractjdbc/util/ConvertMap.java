@@ -21,7 +21,7 @@ public class ConvertMap {
         throw new IllegalStateException("Utility class");
     }
 
-     public static   <T> Map<String,Object> toMap(Class<?> clazz,T entity) throws IntrospectionException {
+     public static  Map<String,Object> toMap(Class<?> clazz) throws IntrospectionException {
          BeanInfo beanInfo = Introspector.getBeanInfo(clazz);
          PropertyDescriptor[] propertyDescriptors =  beanInfo.getPropertyDescriptors();
          String propertyName;

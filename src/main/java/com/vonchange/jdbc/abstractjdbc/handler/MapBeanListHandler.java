@@ -17,14 +17,15 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 
-import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
+import com.vonchange.mybatis.common.util.ConvertUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +38,7 @@ import java.util.Map;
  * @param <T> the target processor type
  */
 public class MapBeanListHandler<T> implements ResultSetExtractor<Map<String, T>> {
-
+    private static final Logger log = LoggerFactory.getLogger(MapBeanListHandler.class);
     /**
      * The Class of beans produced by this handler.
      */
@@ -78,25 +79,19 @@ public class MapBeanListHandler<T> implements ResultSetExtractor<Map<String, T>>
     public Map<String, T> extractData(ResultSet rs) throws SQLException {
         try {
             return this.toBeanList(rs, type);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (IntrospectionException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
+        } catch (IllegalAccessException|IntrospectionException|InstantiationException e) {
+            log.error("",e);
         }
-        return  new HashMap<String, T>();
+        return  new HashMap<>();
     }
-
+    @SuppressWarnings("unchecked")
     private  Map<String, T> toBeanList(ResultSet rs,  Class<? extends T> type) throws SQLException, IllegalAccessException, IntrospectionException, InstantiationException {
         Map<String, T> resultMap= new HashMap<>();
         if (!rs.next()) {
             return resultMap;
         }
-      BeanProcessor beanProcessor =new BeanProcessor();
       T entity ;
-      ResultSetMetaData rsmd = rs.getMetaData();
-        Map<String,Object> newMap=null;
+        Map<String,Object> newMap;
           do {
               newMap=ConvertMap.newMap(HandlerUtil.rowToMap(rs));
               entity=(T) ConvertMap.convertMap(type,newMap);
@@ -104,7 +99,7 @@ public class MapBeanListHandler<T> implements ResultSetExtractor<Map<String, T>>
               if(keyInMap.indexOf(ConstantJdbc.MAPFIELDSPLIT)!=-1){
                   keyInMaps=keyInMap.split(ConstantJdbc.MAPFIELDSPLIT);
               }
-              StringBuffer key=new StringBuffer();
+              StringBuilder key=new StringBuilder();
               for (String keyIn:keyInMaps) {
                   keyIn=keyIn.toLowerCase();
                   key.append(ConvertUtil.toString(newMap.get(keyIn))).append("_");

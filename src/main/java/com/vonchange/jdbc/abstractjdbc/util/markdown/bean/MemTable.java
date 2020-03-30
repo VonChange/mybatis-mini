@@ -4,9 +4,7 @@ import java.util.Map;
 
 /**
  * @author 冯昌义
- * @brief
- * @details
- * @date 2017/12/5.
+ *  2017/12/5.
  */
 public class MemTable {
     private Map<String,Object> info;

@@ -4,18 +4,17 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>mybatis-mini</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.5</version>
 	<packaging>jar</packaging>
 	<name>mybatis-mini</name>
 	<description>mybatis-mini</description>
 	<parent>
 		<groupId>com.vonchange.common</groupId>
 		<artifactId>parent-jar</artifactId>
-		<version>1.0</version>
+		<version>1.2</version>
 	</parent>
 
 	<dependencies>
-
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
 			<artifactId>jsqlparser</artifactId>
@@ -24,7 +23,7 @@
 		<dependency>
 			<groupId>com.vonchange.common</groupId>
 			<artifactId>mybatis-template</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.data</groupId>
@@ -38,7 +37,6 @@
 			<version>4.3.18.RELEASE</version>
 			<scope>compile</scope>
 		</dependency>
-
 
 	</dependencies>
 

@@ -16,12 +16,12 @@
  */
 package com.vonchange.jdbc.abstractjdbc.handler;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +35,7 @@ import java.util.List;
  */
 public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
 
+    private static final Logger log = LoggerFactory.getLogger(BeanListHandler.class);
     /**
      * The Class of beans produced by this handler.
      */
@@ -47,14 +48,14 @@ public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
      * @param type The Class that objects returned from <core>handle()</core>
      * are created from.
      */
-  
+
 
     /**
      * Creates a new instance of BeanListHandler.
      *
      * @param type The Class that objects returned from <core>handle()</core>
-     * are created from.
-     * to use when converting rows into beans.
+     *             are created from.
+     *             to use when converting rows into beans.
      */
     public BeanListHandler(Class<? extends T> type) {
         this.type = type;
@@ -65,40 +66,31 @@ public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
      * the <core>Class</core> given in the constructor.
      *
      * @param rs The <core>ResultSet</core> to handle.
-     *
      * @return A List of beans, never <core>null</core>.
-     *
      * @throws SQLException if a database access error occurs
      */
     @Override
     public List<T> extractData(ResultSet rs) throws SQLException {
         try {
             return this.toBeanList(rs, type);
-        } catch (IntrospectionException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
+        } catch (IntrospectionException | InstantiationException | IllegalAccessException  e) {
+            log.error("Exception ", e);
         }
         return new ArrayList<>();
     }
 
-    private  List<T> toBeanList(ResultSet rs,  Class<? extends T> type) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    private List<T> toBeanList(ResultSet rs, Class<? extends T> type) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException{
         List<T> results = new ArrayList<>();
-      if (!rs.next()) {
-          return results;
-      }
-      BeanProcessor beanProcessor =new BeanProcessor();
-      T entity;
-   	 ResultSetMetaData rsmd = rs.getMetaData();
-          do {
-        	  entity=beanProcessor.createBean(rs, rsmd, type);
-              results.add(entity);
-           } while (rs.next());
-           return results;
+        if (!rs.next()) {
+            return results;
+        }
+        BeanProcessor beanProcessor = new BeanProcessor();
+        T entity;
+        do {
+            entity = beanProcessor.createBean(rs, type);
+            results.add(entity);
+        } while (rs.next());
+        return results;
     }
-	
+
 }

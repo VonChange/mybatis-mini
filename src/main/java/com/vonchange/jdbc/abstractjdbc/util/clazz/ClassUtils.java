@@ -8,7 +8,7 @@ import java.util.Date;
  * 类组件
  * 
  * @author von_change@163.com
- * @date 2015-6-14 下午10:28:34
+ * 2015-6-14 下午10:28:34
  */
 public class ClassUtils {
 	private ClassUtils() {

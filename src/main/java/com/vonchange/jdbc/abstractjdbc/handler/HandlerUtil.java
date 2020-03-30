@@ -10,11 +10,10 @@ import java.util.Map;
 
 /**
  * @author 冯昌义
- * @brief
- * @details
- * @date 2017/12/26.
+ * 2017/12/26.
  */
 public class HandlerUtil {
+    private HandlerUtil() { throw new IllegalStateException("Utility class");}
     public static Map<String,Object> rowToMap(ResultSet rs,boolean lower,boolean orm) throws SQLException {
         Map<String,Object> resultMap = new LinkedHashMap<>();
         ResultSetMetaData rsmd = rs.getMetaData();

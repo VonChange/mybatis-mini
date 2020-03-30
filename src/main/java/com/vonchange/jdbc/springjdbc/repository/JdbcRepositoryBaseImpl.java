@@ -26,5 +26,20 @@ public    class JdbcRepositoryBaseImpl extends AbstractJbdcRepositoryMysql imple
         return 5000;
     }
 
+    @Override
+    protected boolean logRead() {
+        return false;
+    }
+
+    @Override
+    protected boolean logWrite() {
+        return false;
+    }
+
+    @Override
+    protected boolean logFullSql() {
+        return false;
+    }
+
 
 }

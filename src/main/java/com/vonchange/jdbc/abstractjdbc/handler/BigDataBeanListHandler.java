@@ -26,9 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,17 +34,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
  * @param <T> the target processor type
  */
-public  class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
+public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
     private static final Logger logger = LoggerFactory.getLogger(BigDataBeanListHandler.class);
     /**
      * The Class of beans produced by this handler.
      */
     private final Class<? extends T> type;
-    private   AbstractPageWork abstractPageWork;
-    private  String sql;
+    private AbstractPageWork abstractPageWork;
+    private String sql;
 
     /**
      * Creates a new instance of BeanListHandler.
@@ -60,13 +57,13 @@ public  class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
      * Creates a new instance of BeanListHandler.
      *
      * @param type The Class that objects returned from <core>handle()</core>
-     * are created from.
-     * to use when converting rows into beans.
+     *             are created from.
+     *             to use when converting rows into beans.
      */
-    public BigDataBeanListHandler(Class<? extends T> type, AbstractPageWork abstractPageWork,String sql) {
+    public BigDataBeanListHandler(Class<? extends T> type, AbstractPageWork abstractPageWork, String sql) {
         this.type = type;
-        this.abstractPageWork=abstractPageWork;
-        this.sql=sql;
+        this.abstractPageWork = abstractPageWork;
+        this.sql = sql;
     }
 
     /**
@@ -74,57 +71,49 @@ public  class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
      * the <core>Class</core> given in the constructor.
      *
      * @param rs The <core>ResultSet</core> to handle.
-     *
      * @return A List of beans, never <core>null</core>.
-     *
      * @throws SQLException if a database access error occurs
      */
     @Override
     public Page<T> extractData(ResultSet rs) throws SQLException {
-        int pageSize=abstractPageWork.getPageSize();
+        int pageSize = abstractPageWork.getPageSize();
         try {
-            return this.toBeanList(rs, type,pageSize);
-        } catch (IntrospectionException e) {
-            logger.error("IntrospectionException ",e);
-        } catch (InstantiationException e) {
-            logger.error("InstantiationException",e);
-        } catch (IllegalAccessException e) {
-            logger.error("IllegalAccessException",e);
-        } catch (InvocationTargetException e) {
-            logger.error("InvocationTargetException",e);
+            return this.toBeanList(rs, type, pageSize);
+        } catch (IntrospectionException|InstantiationException|IllegalAccessException e) {
+            logger.error("Exception ", e);
         }
         return new PageImpl<>(new ArrayList<T>());
     }
-    private  Page<T> toBeanList(ResultSet rs,  Class<? extends T> type,int pageSize) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    @SuppressWarnings("unchecked")
+    private Page<T> toBeanList(ResultSet rs, Class<? extends T> type, int pageSize) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException {
         List<T> result = new ArrayList<>();
-        Map<String,Object> extData= new HashMap<>();
+        Map<String, Object> extData = new HashMap<>();
         if (!rs.next()) {
-            abstractPageWork.doPage(result,0,extData);
-            return 	new PageImpl<>(result);
+            abstractPageWork.doPage(result, 0, extData);
+            return new PageImpl<>(result);
         }
-        int pageItem=0;
-        int pageNum=0;
-        long count=0;
-        BeanProcessor beanProcessor =new BeanProcessor();
-        ResultSetMetaData rsmd = rs.getMetaData();
+        int pageItem = 0;
+        int pageNum = 0;
+        long count = 0;
+        BeanProcessor beanProcessor = new BeanProcessor();
         do {
-            result.add(beanProcessor.createBean(rs, rsmd, type));
+            result.add(beanProcessor.createBean(rs, type));
             pageItem++;
             count++;
-            if(pageItem==pageSize){
-                abstractPageWork.doPage(result,pageNum,extData);
+            if (pageItem == pageSize) {
+                abstractPageWork.doPage(result, pageNum, extData);
                 pageNum++;
-                result=new ArrayList<>();
-                pageItem=0;
+                result = new ArrayList<>();
+                pageItem = 0;
             }
         } while (rs.next());
-        if(result.size()>0){
-            abstractPageWork.doPage(result,pageNum,extData);
-            Pageable pageable=new PageRequest(pageNum,pageSize);
-            return 	new PageImpl<>(result,pageable,count);
+        if (!result.isEmpty()) {
+            abstractPageWork.doPage(result, pageNum, extData);
+            Pageable pageable = new PageRequest(pageNum, pageSize);
+            return new PageImpl<>(result, pageable, count);
         }
-        Pageable pageable=new PageRequest(pageNum-1,pageSize);
-        return 	new PageImpl<>(result,pageable,count);
+        Pageable pageable = new PageRequest(pageNum - 1, pageSize);
+        return new PageImpl<>(result, pageable, count);
     }
-	
+
 }

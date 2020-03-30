@@ -31,6 +31,7 @@ public interface JdbcRepository {
     <T> int  updateBatch(List<T> entityList);
     <T> int  insertBatch(List<T> entityList);
     <T> int  updateBatchAllField(List<T> entityList);
+    <T> int  insertBatchDuplicateKey(List<T> entityList);
     //带 dataSource
     <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Map<String, Object> parameter);
     int update(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter);
@@ -53,5 +54,8 @@ public interface JdbcRepository {
     <T> int  insertBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList);
     <T> int  updateBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList);
     <T> int  updateBatchAllField(DataSourceWrapper dataSourceWrapper,List<T> entityList);
+    <T> int  insertBatchDuplicateKey(DataSourceWrapper dataSourceWrapper,List<T> entityList);
+    <T> Map<String, T> queryToMap(Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter);
+    <T> Map<String, T> queryToMap(DataSourceWrapper dataSourceWrapper,Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter);
 }
 

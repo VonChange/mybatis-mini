@@ -75,7 +75,7 @@ public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<Stri
 				pageItem=0;
 			}
 		} while (rs.next());
-		if(result.size()>0){
+		if(!result.isEmpty()){
 			abstractPageWork.doPage(result,pageNum,extData);
 			Pageable pageable=new PageRequest(pageNum,pageSize);
 			return 	new PageImpl<>(result,pageable,count);

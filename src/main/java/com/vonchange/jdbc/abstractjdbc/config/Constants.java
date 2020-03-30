@@ -7,7 +7,7 @@ package com.vonchange.jdbc.abstractjdbc.config;
  *
  */
 public class Constants {
-
+	private Constants() { throw new IllegalStateException("Utility class");}
 	/**
 	 * mardown 配置里的信息
 	 */
@@ -20,11 +20,6 @@ public class Constants {
 		public static final String TABLES = "tables";
 		public static final String VIEWS = "views";
 		public static final String IDPREF = "--";
-		public static class Cache{
-			public static final String CACHE= "cache";
-			public static final String TIME = "time";
-			public static final String SIZE = "size";
-		}
 	}
 	public  enum EnumRWType {
 		read(0,"读"),write(0,"写");

@@ -3,7 +3,6 @@ package com.vonchange.jdbc.abstractjdbc.util.markdown;
 
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
 import com.vonchange.jdbc.abstractjdbc.config.Constants;
-import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.CacheInfo;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.JoinTable;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.MemTable;
 import com.vonchange.mybatis.common.util.ConvertUtil;
@@ -61,41 +60,7 @@ public class MarkdownDataUtil{
         memTable.setInfo(data);
         return  memTable;
     }
-    public static CacheInfo getCacheInfo(MarkdownDTO markdownDTO, String id) {
-        CacheInfo cacheInfo= new CacheInfo();
-        Map<String,Object> data= markdownDTO.getJsonMap().get(Constants.Markdown.JSON+id);
-        if(null==data){
-            cacheInfo.setCache(false);
-            return  cacheInfo;
-        }
-        Boolean cache=ConvertUtil.toBoolean(data.get(Constants.Markdown.Cache.CACHE));
-        if(null==cache||!cache){
-            cacheInfo.setCache(false);
-            return  cacheInfo;
-        }
-        String timeStr=ConvertUtil.toString(data.get(Constants.Markdown.Cache.TIME));
-        if(null==timeStr){
-            timeStr="10";
-        }
-       String[] times= timeStr.split("\\*");
-        Long time=1L;
-        for (String timeSub: times) {
-            time=ConvertUtil.toLong(timeSub)*time;
-        }
-        String sizeStr=ConvertUtil.toString(data.get(Constants.Markdown.Cache.SIZE));
-        if(null==sizeStr){
-            sizeStr="1";
-        }
-        String[] sizes= sizeStr.split("\\*");
-        Long size=1L;
-        for (String sizeSub: sizes) {
-            size=ConvertUtil.toLong(sizeSub)*size;
-        }
-        cacheInfo.setCache(cache);
-        cacheInfo.setTime(1L==time?0L:time);
-        cacheInfo.setSize(1L==size?0L:size);
-        return cacheInfo;
-    }
+
     public static String getSql(MarkdownDTO markdownDTO,String id) {
         String sql =markdownDTO.getContentMap().get(Constants.Markdown.SQL+id);
         if(StringUtils.isBlank(sql)&&!StringUtils.endsWith(id, ConstantJdbc.COUNTFLAG)){

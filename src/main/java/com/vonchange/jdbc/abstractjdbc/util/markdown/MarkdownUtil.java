@@ -161,13 +161,7 @@ public class MarkdownUtil {
                 throw new IllegalArgumentException("无结尾 ``` 符号 at: " + (ndx - startLen));
             }
             String content=result.substring(ndx,ndx2).trim();
-            if(key.startsWith("json:")){
-                // @TODO XXX
-               /* markdownDTO.getJsonMap().put(key, JsonUtil.fromJson(content, new TypeReference<Map<String, Object>>() {
-                }));*/
-            }else{
-                markdownDTO.getContentMap().put(key,content);
-            }
+            markdownDTO.getContentMap().put(key,content);
             i=ndx2+endLen;
         }
         return markdownDTO;
@@ -208,8 +202,7 @@ public class MarkdownUtil {
 
     public static String  getSql(String sqlId) {
         MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId);
-        String sql = MarkdownDataUtil.getSql(mdWithInnerIdTemp.getMarkdownDTO(),mdWithInnerIdTemp.getInnnerId());
-        return sql;
+        return  MarkdownDataUtil.getSql(mdWithInnerIdTemp.getMarkdownDTO(),mdWithInnerIdTemp.getInnnerId());
     }
     public static SqlInfo getSqlInfo(String sqlId) {
         MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId);

@@ -18,45 +18,26 @@ package com.vonchange.jdbc.abstractjdbc.handler;
 
 
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
-import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 
 import java.beans.IntrospectionException;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
  *bean处理器
  * @author von_change@163.com
- * @date 2015-6-14 下午10:12:33
+ * 2015-6-14 下午10:12:33
  */
 public class BeanProcessor {
 	/**
 	 * 创建bean
 	 * @param rs
-	 * @param rsmd
 	 * @return T
 	 * @throws SQLException
 	 */
-	public <T> T createBean(ResultSet rs, ResultSetMetaData rsmd, Class<T> c) throws SQLException, InvocationTargetException, IntrospectionException, InstantiationException, IllegalAccessException {
+	@SuppressWarnings("unchecked")
+	public <T> T createBean(ResultSet rs,  Class<T> c) throws SQLException,  IntrospectionException, InstantiationException, IllegalAccessException {
 		return (T) ConvertMap.convertMap(c,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
-	}
-
-
-	/**
-	 *实例化bean
-	 * @return T
-	 */
-	public <T> T newInstance(Class<? extends T> c) {
-		try {
-			return c.newInstance();
-		} catch (InstantiationException e) {
-			throw new MybatisMinRuntimeException("Cannot create " + c.getName() + ": " + e.getMessage());
-
-		} catch (IllegalAccessException e) {
-			throw new MybatisMinRuntimeException("Cannot create " + c.getName() + ": " + e.getMessage());
-		}
 	}
 
 }

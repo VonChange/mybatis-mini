@@ -25,7 +25,6 @@ import java.sql.SQLException;
  * <core>ResultSetHandler</core> implementation that converts one
  * <core>ResultSet</core> column into an Object. This class is thread safe.
  *
- * @see
  */
 public class ScalarHandler implements ResultSetExtractor<Object> {
 

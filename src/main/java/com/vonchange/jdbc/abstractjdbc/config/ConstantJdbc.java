@@ -4,7 +4,7 @@ package com.vonchange.jdbc.abstractjdbc.config;
  * Created by 冯昌义 on 2018/3/20.
  */
 public class ConstantJdbc {
-
+    private ConstantJdbc() { throw new IllegalStateException("Utility class");}
     public static  class  PageParam{
         public static final String COUNT = "_count";
         public static final String AT = "@";
