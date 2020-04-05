@@ -17,7 +17,7 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 
-import com.vonchange.jdbc.abstractjdbc.util.sql.SqlCommentUtil;
+import com.vonchange.mybatis.tpl.sql.SqlCommentUtil;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.sql.ResultSet;

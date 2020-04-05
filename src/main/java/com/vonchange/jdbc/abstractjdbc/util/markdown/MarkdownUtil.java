@@ -27,15 +27,11 @@ public class MarkdownUtil {
         throw new IllegalStateException("Utility class");
     }
     private   static Logger logger = LoggerFactory.getLogger(MarkdownUtil.class);
-    private   static  Map<String,MarkdownDTO> idMardownMap=new ConcurrentHashMap<>();
+    private   static  Map<String,MarkdownDTO> idMarkdownMap=new ConcurrentHashMap<>();
 
     private   static  MarkdownDTO readMarkdownFile(String packname,String fileName){
-        String url="file:/usr/etc/"+fileName;
+        String url= "classpath:"+FileUtils.getFileURLPath(packname,fileName);
         Resource resource= FileUtils.getResource(url);
-        if(!resource.exists()){
-             url= "classpath:"+FileUtils.getFileURLPath(packname,fileName);
-             resource= FileUtils.getResource(url);
-        }
        long lastModified;
         String id;
        try {
@@ -43,20 +39,21 @@ public class MarkdownUtil {
              if(lastModified==0){
                  return null;
              }
-             id=resource.getURI().toString();
+             id=packname+"."+fileName;
+                     //resource.getURI().toString();
         } catch (IOException e) {
-           logger.error("读取markdown文件出错{}:{}",url,e);
-           return null;
+           logger.error("read markdown file error {}",url);
+           throw new MybatisMinRuntimeException("read markdown file error"+url);
         }
         boolean needLoad=true;
-        if(null!=idMardownMap.get(id)){
-            MarkdownDTO markdownDTO=idMardownMap.get(id);
+        if(null!=idMarkdownMap.get(id)){
+            MarkdownDTO markdownDTO=idMarkdownMap.get(id);
             if((lastModified+"").equals(markdownDTO.getVersion())){
                 needLoad=false;
             }
         }
         if(!needLoad){
-            return  idMardownMap.get(id);
+            return  idMarkdownMap.get(id);
         }
         String content=null;
         try {
@@ -65,7 +62,7 @@ public class MarkdownUtil {
             logger.error("读取markdown文件出错{}:{}",url,e);
         }
         MarkdownDTO markdownDTO= getMarkDownInfo(content,id,lastModified+"");
-        idMardownMap.put(id,markdownDTO);
+        idMarkdownMap.put(id,markdownDTO);
         return markdownDTO;
     }
     public  static  MarkdownDTO readMarkdown(String content,String id,String version){
@@ -76,17 +73,17 @@ public class MarkdownUtil {
             version=getVersion(content);
         }
         boolean needLoad=true;
-        if(null!=idMardownMap.get(id)){
-            MarkdownDTO markdownDTO=idMardownMap.get(id);
+        if(null!=idMarkdownMap.get(id)){
+            MarkdownDTO markdownDTO=idMarkdownMap.get(id);
             if((version).equals(markdownDTO.getVersion())){
                 needLoad=false;
             }
         }
         if(!needLoad){
-            return  idMardownMap.get(id);
+            return  idMarkdownMap.get(id);
         }
         MarkdownDTO markdownDTO= getMarkDownInfo(content,id,version);
-        idMardownMap.put(id,markdownDTO);
+        idMarkdownMap.put(id,markdownDTO);
         return markdownDTO;
     }
     private   static  String getId(String result){
@@ -242,15 +239,15 @@ public class MarkdownUtil {
 
         String[] sqlIds = StringUtil.split(sqlId, ".");
         if (sqlIds.length < 2) {
-            throw  new MybatisMinRuntimeException("获取配置文件id有误:"+sqlId);
+            throw  new MybatisMinRuntimeException("error config  id:"+sqlId);
         }
         StringBuilder packageName = new StringBuilder();
         for (int i = 0; i < sqlIds.length - 2; i++) {
-            packageName = packageName.append(sqlIds[i]);
+             packageName.append(sqlIds[i]).append(".");
         }
         String fileName=sqlIds[sqlIds.length - 2] + ".md";
         String needFindId=sqlIds[sqlIds.length - 1];
-        MarkdownDTO markdownDTO= MarkdownUtil.readMarkdownFile(packageName.toString(),fileName);
+        MarkdownDTO markdownDTO= MarkdownUtil.readMarkdownFile(packageName.substring(0,packageName.length()-1),fileName);
         mdWithInnerIdTemp.setInnnerId(needFindId);
         mdWithInnerIdTemp.setMarkdownDTO(markdownDTO);
         return mdWithInnerIdTemp;

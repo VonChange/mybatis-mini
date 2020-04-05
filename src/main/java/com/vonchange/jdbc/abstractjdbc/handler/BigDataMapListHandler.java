@@ -17,7 +17,7 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 
-import com.vonchange.jdbc.abstractjdbc.util.sql.SqlCommentUtil;
+import com.vonchange.mybatis.tpl.sql.SqlCommentUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;

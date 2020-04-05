@@ -1,10 +1,10 @@
 package com.vonchange.jdbc.abstractjdbc.util;
 
 
-import com.vonchange.jdbc.abstractjdbc.util.sql.OrmUtil;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
 import com.vonchange.mybatis.config.Constant;
+import com.vonchange.mybatis.tpl.OrmUtil;
 import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 
 import javax.persistence.Column;
@@ -36,27 +36,20 @@ public class ConvertMap {
      }
 
     /**
-     * 将一个 Map 对象转化为一个 JavaBean
-     * @param type 要转化的类型
-     * @param map 包含属性值的 map
-     * @return 转化出来的 JavaBean 对象
-     * @throws IntrospectionException 如果分析类属性失败
-     * @throws IllegalAccessException 如果实例化 JavaBean 失败
-     * @throws InstantiationException 如果实例化 JavaBean 失败
+     *  Map to JavaBean
      */ 
     @SuppressWarnings("rawtypes") 
     public static Object convertMap(Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InstantiationException {
-        BeanInfo beanInfo = Introspector.getBeanInfo(type); // 获取类属性
+        BeanInfo beanInfo = Introspector.getBeanInfo(type);
         Object entity = null;
         try {
-             entity = type.newInstance(); // 创建 JavaBean 对象
+             entity = type.newInstance();
         }catch (InstantiationException e){
-            throw new  MybatisMinRuntimeException("java.lang.InstantiationException "+type.getName()+" 实体类需要无参数构造函数");
+            throw new  MybatisMinRuntimeException("java.lang.InstantiationException "+type.getName()+" need no-arguments constructor");
         }
         if(null==map||map.isEmpty()){
             return  entity;
         }
-        // 给 JavaBean 对象的属性赋值 
         PropertyDescriptor[] propertyDescriptors =  beanInfo.getPropertyDescriptors();
         Class<?> propertyType;
         String propertyName;
@@ -82,7 +75,6 @@ public class ConvertMap {
                 if(null==value){
                     continue;
                 }
-                //转换类型
                 value= ConvertUtil.toObject(value,propertyType);
                 Constant.BeanUtils.setProperty(entity, propertyName, value);
             }
@@ -100,7 +92,6 @@ public class ConvertMap {
         for (Map.Entry<String,Object> entry: map.entrySet()) {
             key=entry.getKey();
             newMap.put(key.toLowerCase(),entry.getValue());
-            //驼峰 转换
             key= OrmUtil.toFiled(entry.getKey());
             newMap.put(key.toLowerCase(),entry.getValue());
         }

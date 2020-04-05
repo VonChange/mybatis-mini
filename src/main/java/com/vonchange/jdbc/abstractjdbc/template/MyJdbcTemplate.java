@@ -946,7 +946,7 @@ public class MyJdbcTemplate extends JdbcAccessor implements JdbcOperations {
 							(InterruptibleBatchPreparedStatementSetter) pss : null);
 					boolean supportBatchUpdate =JdbcUtils.supportsBatchUpdates(ps.getConnection());
 					if(!supportBatchUpdate){
-						  throw new MybatisMinRuntimeException("jdbc 不支持 batchUpdate");
+						  throw new MybatisMinRuntimeException("jdbc not support batchUpdate");
 					}
 					for (int i = 0; i < batchSize; i++) {
 							pss.setValues(ps, i);

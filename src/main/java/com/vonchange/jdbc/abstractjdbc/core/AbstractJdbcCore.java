@@ -15,9 +15,9 @@ import com.vonchange.jdbc.abstractjdbc.util.markdown.MarkdownUtil;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.SqlInfo;
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
-import com.vonchange.mybatis.common.util.map.HashMap;
 import com.vonchange.mybatis.config.Constant;
 import com.vonchange.mybatis.tpl.EntityUtil;
+import com.vonchange.mybatis.tpl.MybatisTpl;
 import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 import com.vonchange.mybatis.tpl.model.EntityField;
 import com.vonchange.mybatis.tpl.model.EntityInfo;
@@ -29,6 +29,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.beans.IntrospectionException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -99,7 +100,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         if (null != dataSourceWrapper) {
             return dataSourceWrapper;
         }
-        //从sql 里 获取datasource  实例名
+        //from sql get datasource
         DataSourceWrapper dataSourceFromSql = getDataSourceFromSql(sql);
         if (null != dataSourceFromSql) {
             return dataSourceFromSql;
@@ -117,7 +118,6 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         if (yhJdbcTemplateMap.containsKey(dataSource.getKey())) {
             return yhJdbcTemplateMap.get(dataSource.getKey());
         }
-        //缓存？
         MyJdbcTemplate myJdbcTemplate = new MyJdbcTemplate(dataSource.getDataSource());
         myJdbcTemplate.setFetchSizeBigData(getDefaultDialect().getBigDataFetchSize());
         myJdbcTemplate.setFetchSize(getDefaultDialect().getFetchSize());
@@ -295,6 +295,9 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
             insertSql = insertSql + " ON DUPLICATE KEY UPDATE " + entityInsertResult.getUpdateStr();
         }
         String idName = entityInfo.getIdFieldName();
+        if(null==idName){
+            throw new MybatisMinRuntimeException("need entity field @ID");
+        }
         sqlParmeter.setIdName(idName);
         sqlParmeter.setSql(insertSql);
         sqlParmeter.setParameters(entityInsertResult.getValueList().toArray());
@@ -406,7 +409,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
         Object idValue = getPublicPro(entity, entityInfo.getIdFieldName());
         if (null == idValue) {
-            throw new MybatisMinRuntimeException("主键值为空！无法更新");
+            throw new MybatisMinRuntimeException("ID value is null,can not  update");
         }
         List<Object> params = new ArrayList<>();
         Map<String, EntityField> entityFieldMap = entityInfo.getFieldMap();
@@ -429,9 +432,12 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         EntityInfo entityInfo = EntityUtil.getEntityInfo(entity.getClass());
         String tableName = entityInfo.getTableName();
         String idColumnName = entityInfo.getIdColumnName();
+        if(null==idColumnName){
+            throw  new MybatisMinRuntimeException("need entity field @ID");
+        }
         Object idValue = getPublicPro(entity, entityInfo.getIdFieldName());
         if (null == idValue) {
-            throw new MybatisMinRuntimeException("主键值为空！无法更新");
+            throw new MybatisMinRuntimeException("ID value is null,can not update");
         }
         List<EntityCu> entityCuList = new ArrayList<>();
         Map<String, EntityField> entityFieldMap = entityInfo.getFieldMap();
@@ -492,15 +498,12 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         initEntityInfo(type);
         EntityInfo entityInfo = EntityUtil.getEntityInfo(type);
         String tableName = entityInfo.getTableName();
-        if (null == tableName) {
-            throw new MybatisMinRuntimeException("未定义实体table注解");
-        }
         String idName = entityInfo.getIdColumnName();
         return StringUtils.format("select * from {0} where  {1} = ?", tableName, idName);
     }
 
     public final <T> List<T> queryList(DataSourceWrapper dataSourceWrapper, Class<T> type, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
+        SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
         return getJdbcBase().queryList(dataSourceWrapper, type, sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
@@ -511,7 +514,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
 
 
     public <T> T queryOne(DataSourceWrapper dataSourceWrapper, Class<T> type, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
         return getJdbcBase().queryOne(dataSourceWrapper, type, getDefaultDialect().getLimitOne(sqlParmeter.getSql()), sqlParmeter.getParameters());
     }
@@ -522,7 +525,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
 
 
     public Map<String, Object> queryMapOne(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
+        SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
         return getJdbcBase().queryUniqueResultMap(dataSourceWrapper, getDefaultDialect().getLimitOne(sqlParmeter.getSql()), sqlParmeter.getParameters());
     }
@@ -532,7 +535,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public final List<Map<String, Object>> queryMapList(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
         return getJdbcBase().queryListResultMap(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
@@ -547,7 +550,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public final Page<Map<String, Object>> queryMapBigData(DataSourceWrapper dataSourceWrapper, String sqlId, AbstractMapPageWork pageWork, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
         return getJdbcBase().queryForBigData(dataSourceWrapper, sqlParmeter.getSql(), pageWork, sqlParmeter.getParameters());
     }
@@ -557,7 +560,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
     @SuppressWarnings("unchecked")
     public final <T> Page<T> queryBigData(DataSourceWrapper dataSourceWrapper, Class<T> type, String sqlId, AbstractPageWork pageWork, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
         return getJdbcBase().queryForBigData(dataSourceWrapper, type, sqlParmeter.getSql(), pageWork, sqlParmeter.getParameters());
     }
@@ -567,8 +570,8 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public final Page<Map<String, Object>> queryMapPage(DataSourceWrapper dataSourceWrapper, String sqlId, Pageable pageable, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
-        SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
+        SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG,parameter);
         String countSql = countSqlInfo.getSql();
         boolean hasCountSqlInMd = true;
         if (StringUtils.isBlank(countSql)) {
@@ -596,8 +599,8 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public <T> Page<T> queryPage(DataSourceWrapper dataSourceWrapper, Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
-        SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG);
+        SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
+        SqlInfo countSqlInfo = getSqlInfo(sqlId + ConstantJdbc.COUNTFLAG,parameter);
         String countSql = countSqlInfo.getSql();
         boolean hasCountSqlInMd = true;
         if (StringUtils.isBlank(countSqlInfo.getSql())) {
@@ -632,7 +635,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         if (params.containsKey(ConstantJdbc.PageParam.COUNT)) {
             countSql = ConvertUtil.toString(params.get(ConstantJdbc.PageParam.COUNT));
         }
-        //直接给 数量 传入 　_count = @123
+        //count num 　_count = @123
         if (!StringUtils.isBlank(countSql) && countSql.startsWith(ConstantJdbc.PageParam.AT)) {
             return ConvertUtil.toLong(countSql.substring(1));
         }
@@ -658,7 +661,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public <T> T queryOneColumn(DataSourceWrapper dataSourceWrapper, Class<?> targetType, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
         Object result = getJdbcBase().queryOneColumn(dataSourceWrapper, sqlParmeter.getSql(), 1, sqlParmeter.getParameters());
         return ConvertUtil.toObject(result, targetType);
@@ -678,12 +681,16 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public <T> Map<String, T> queryToMap(DataSourceWrapper dataSourceWrapper, Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter) {
-        SqlInfo sqlInfo = getSqlInfo(sqlId);
+        SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
         return getJdbcBase().queryMapList(dataSourceWrapper, c, sqlParmeter.getSql(), keyInMap, sqlParmeter.getParameters());
     }
 
-    private SqlInfo getSqlInfo(String sqlId) {
+    private SqlInfo getSqlInfo(String sqlId,Map<String,Object> parameter) {
+        if(null==parameter){
+            parameter= new LinkedHashMap<>();
+        }
+        parameter.put(MybatisTpl.MARKDOWN_SQL_ID,sqlId);
         return MarkdownUtil.getSqlInfo(sqlId);
     }
 
@@ -702,13 +709,14 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         if (null == entityList || entityList.isEmpty()) {
             return 0;
         }
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
-        Map<String, Object> map = new HashMap<>();
+
+        Map<String, Object> map = new LinkedHashMap<>();
         try {
             map = ConvertMap.toMap(entityList.get(0).getClass());
         } catch (IntrospectionException e) {
             log.error("IntrospectionException ", e);
         }
+        SqlInfo sqlinfo = getSqlInfo(sqlId,map);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), map);
         String sql = sqlParmeter.getSql();
         List<Object[]> param = new ArrayList<>();
@@ -746,7 +754,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public int update(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
+        SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
         String sql = sqlinfo.getSql();
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
         return getJdbcBase().update(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
@@ -757,7 +765,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public Object insert(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
-        SqlInfo sqlinfo = getSqlInfo(sqlId);
+        SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
         String sql = sqlinfo.getSql();
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);
         return getJdbcBase().insert(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());

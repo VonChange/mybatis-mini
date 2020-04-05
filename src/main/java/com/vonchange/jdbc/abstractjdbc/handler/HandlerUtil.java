@@ -1,6 +1,7 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
-import com.vonchange.jdbc.abstractjdbc.util.sql.OrmUtil;
+
+import com.vonchange.mybatis.tpl.OrmUtil;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;

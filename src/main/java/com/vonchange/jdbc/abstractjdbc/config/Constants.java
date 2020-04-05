@@ -12,18 +12,11 @@ public class Constants {
 	 * mardown 配置里的信息
 	 */
 	public static  class  Markdown{
-		public static final String SQL = "";//sql:
-		public static final String TABLE = "";
-		public static final String VIEW = "";
-		public static final String JSON = "json:";
-		public static final String JS = "js:";
 		public static final String TABLES = "tables";
-		public static final String VIEWS = "views";
 		public static final String IDPREF = "--";
 	}
 	public  enum EnumRWType {
 		read(0,"读"),write(0,"写");
-
 		private Integer value;
 		private String desc;
 		EnumRWType(Integer value, String desc){
