@@ -174,9 +174,9 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         SqlParmeter sqlParmeter = generateInsertSql(entity, false, false);
         Object id = getJdbcBase().insert(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
         if (null != id) {
-            Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
+            Constant.BeanUtil.setProperty(entity, sqlParmeter.getIdName(), id);
         }
-        return Constant.BeanUtils.getProperty(entity, sqlParmeter.getIdName());
+        return Constant.BeanUtil.getProperty(entity, sqlParmeter.getIdName());
     }
 
     public final <T> Object insert(T entity) {
@@ -254,9 +254,9 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         SqlParmeter sqlParmeter = generateInsertSql(entity, true, false);
         Object id = getJdbcBase().insert(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
         if (null != id) {
-            Constant.BeanUtils.setProperty(entity, sqlParmeter.getIdName(), id);
+            Constant.BeanUtil.setProperty(entity, sqlParmeter.getIdName(), id);
         }
-        return Constant.BeanUtils.getProperty(entity, sqlParmeter.getIdName());
+        return Constant.BeanUtil.getProperty(entity, sqlParmeter.getIdName());
     }
 
     private void initEntityInfo(Class<?> clazz) {
@@ -269,7 +269,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         if (name.equals("serialVersionUID")) {//??????
             return null;
         }
-        return Constant.BeanUtils.getProperty(bean, name);
+        return Constant.BeanUtil.getProperty(bean, name);
     }
 
     //private String
@@ -744,7 +744,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     private <T> Object[] beanToObjects(T t, List<String> propertyNames) {
         List<Object> result = new ArrayList<>();
         for (String propertyName: propertyNames) {
-            result.add(Constant.BeanUtils.getProperty(t, propertyName));
+            result.add(Constant.BeanUtil.getProperty(t, propertyName));
         }
         return result.toArray();
     }

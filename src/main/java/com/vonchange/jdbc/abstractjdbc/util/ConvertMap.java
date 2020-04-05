@@ -76,7 +76,7 @@ public class ConvertMap {
                     continue;
                 }
                 value= ConvertUtil.toObject(value,propertyType);
-                Constant.BeanUtils.setProperty(entity, propertyName, value);
+                Constant.BeanUtil.setProperty(entity, propertyName, value);
             }
         }
         return entity;
