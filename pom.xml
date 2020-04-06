@@ -35,7 +35,7 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-jdbc</artifactId>
 			<version>4.3.18.RELEASE</version>
-			<scope>compile</scope>
+			<scope>provided</scope>
 		</dependency>
 
 	</dependencies>
