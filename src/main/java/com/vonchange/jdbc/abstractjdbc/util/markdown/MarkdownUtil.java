@@ -30,6 +30,11 @@ public class MarkdownUtil {
     private   static  Map<String,MarkdownDTO> idMarkdownMap=new ConcurrentHashMap<>();
 
 
+    public static boolean markdownFileExist(String packageName,String fileName){
+        String url= "classpath:"+FileUtils.getFileURLPath(packageName,fileName);
+        Resource resource= FileUtils.getResource(url);
+        return resource.exists();
+    }
     public    static  MarkdownDTO readMarkdownFile(String packageName,String fileName,boolean needReadMdLastModified){
         String id = packageName+"."+fileName;
         if(!needReadMdLastModified&&idMarkdownMap.containsKey(id)){
@@ -42,10 +47,10 @@ public class MarkdownUtil {
              lastModified=  resource.lastModified();
              if(lastModified==0){
                  return null;
-             }//resource.getURI().toString();
+             }
         } catch (IOException e) {
            logger.error("read markdown file error {}",url);
-           throw new MybatisMinRuntimeException("read markdown file error"+url);
+           throw new MybatisMinRuntimeException("read markdown file error "+url);
         }
         boolean needLoad=true;
         if(idMarkdownMap.containsKey(id)){
