@@ -42,4 +42,6 @@ public    class JdbcRepositoryBaseImpl extends AbstractJbdcRepositoryMysql imple
     }
 
 
+
+
 }

@@ -58,6 +58,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     protected abstract boolean logRead();
     protected abstract boolean logWrite();
     protected abstract boolean logFullSql();
+    protected abstract boolean needReadMdLastModified();
 
     private static volatile IJdbcBase jdbcBase = null;
 
@@ -691,7 +692,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
             parameter= new LinkedHashMap<>();
         }
         parameter.put(MybatisTpl.MARKDOWN_SQL_ID,sqlId);
-        return MarkdownUtil.getSqlInfo(sqlId);
+        return MarkdownUtil.getSqlInfo(sqlId,needReadMdLastModified());
     }
 
     private String generateMyCountSql(String sql) {

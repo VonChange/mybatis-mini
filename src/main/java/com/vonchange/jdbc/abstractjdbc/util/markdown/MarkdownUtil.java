@@ -29,24 +29,26 @@ public class MarkdownUtil {
     private   static Logger logger = LoggerFactory.getLogger(MarkdownUtil.class);
     private   static  Map<String,MarkdownDTO> idMarkdownMap=new ConcurrentHashMap<>();
 
-    private   static  MarkdownDTO readMarkdownFile(String packname,String fileName){
-        String url= "classpath:"+FileUtils.getFileURLPath(packname,fileName);
+
+    public    static  MarkdownDTO readMarkdownFile(String packageName,String fileName,boolean needReadMdLastModified){
+        String id = packageName+"."+fileName;
+        if(!needReadMdLastModified&&idMarkdownMap.containsKey(id)){
+                return idMarkdownMap.get(id);
+        }
+        String url= "classpath:"+FileUtils.getFileURLPath(packageName,fileName);
         Resource resource= FileUtils.getResource(url);
        long lastModified;
-        String id;
        try {
              lastModified=  resource.lastModified();
              if(lastModified==0){
                  return null;
-             }
-             id=packname+"."+fileName;
-                     //resource.getURI().toString();
+             }//resource.getURI().toString();
         } catch (IOException e) {
            logger.error("read markdown file error {}",url);
            throw new MybatisMinRuntimeException("read markdown file error"+url);
         }
         boolean needLoad=true;
-        if(null!=idMarkdownMap.get(id)){
+        if(idMarkdownMap.containsKey(id)){
             MarkdownDTO markdownDTO=idMarkdownMap.get(id);
             if((lastModified+"").equals(markdownDTO.getVersion())){
                 needLoad=false;
@@ -65,7 +67,7 @@ public class MarkdownUtil {
         idMarkdownMap.put(id,markdownDTO);
         return markdownDTO;
     }
-    public  static  MarkdownDTO readMarkdown(String content,String id,String version){
+    private   static  MarkdownDTO readMarkdown(String content,String id,String version){
         if(null==id||"".equals(id.trim())){
             id=getId(content);
         }
@@ -184,7 +186,7 @@ public class MarkdownUtil {
                 newSb.append(i == 0?sql:sql.substring(i));
                 break;
             }
-            newSb.append(sql.substring(i, ndx));
+            newSb.append(sql, i, ndx);
             ndx += startLen;
             int ndx2 = sql.indexOf(endSym, ndx);
             if(ndx2 == -1) {
@@ -198,11 +200,11 @@ public class MarkdownUtil {
     }
 
     public static String  getSql(String sqlId) {
-        MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId);
+        MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId,false);
         return  MarkdownDataUtil.getSql(mdWithInnerIdTemp.getMarkdownDTO(),mdWithInnerIdTemp.getInnnerId());
     }
-    public static SqlInfo getSqlInfo(String sqlId) {
-        MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId);
+    public static SqlInfo getSqlInfo(String sqlId,boolean needReadMdLastModified) {
+        MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId,needReadMdLastModified);
         String sql = MarkdownDataUtil.getSql(mdWithInnerIdTemp.getMarkdownDTO(),mdWithInnerIdTemp.getInnnerId());
         SqlInfo sqlInfo=new SqlInfo();
         sqlInfo.setInnnerId(mdWithInnerIdTemp.getInnnerId());
@@ -210,7 +212,7 @@ public class MarkdownUtil {
         sqlInfo.setSql(sql);
         return sqlInfo;
     }
-    public   static MdWithInnerIdTemp loadConfigData(String sqlId) {
+    public   static MdWithInnerIdTemp loadConfigData(String sqlId,boolean needReadMdLastModified) {
         MdWithInnerIdTemp mdWithInnerIdTemp=new MdWithInnerIdTemp();
         if(sqlId.startsWith(ConstantJdbc.ISSQLFLAG)){
             MarkdownDTO markdownDTO= new MarkdownDTO();
@@ -247,7 +249,7 @@ public class MarkdownUtil {
         }
         String fileName=sqlIds[sqlIds.length - 2] + ".md";
         String needFindId=sqlIds[sqlIds.length - 1];
-        MarkdownDTO markdownDTO= MarkdownUtil.readMarkdownFile(packageName.substring(0,packageName.length()-1),fileName);
+        MarkdownDTO markdownDTO= MarkdownUtil.readMarkdownFile(packageName.substring(0,packageName.length()-1),fileName,needReadMdLastModified);
         mdWithInnerIdTemp.setInnnerId(needFindId);
         mdWithInnerIdTemp.setMarkdownDTO(markdownDTO);
         return mdWithInnerIdTemp;

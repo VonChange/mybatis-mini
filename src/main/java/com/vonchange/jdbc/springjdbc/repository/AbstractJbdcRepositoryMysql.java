@@ -25,5 +25,8 @@ public  abstract   class AbstractJbdcRepositoryMysql extends AbstractJdbcCore {
     protected boolean  readAllScopeOpen(){
         return false;
     }
-
+    @Override
+    protected boolean needReadMdLastModified() {
+        return false;
+    }
 }
