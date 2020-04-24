@@ -58,6 +58,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     protected abstract boolean logRead();
     protected abstract boolean logWrite();
     protected abstract boolean logFullSql();
+    protected abstract boolean isMapOrm();
     protected abstract boolean needReadMdLastModified();
 
     private static volatile IJdbcBase jdbcBase = null;
@@ -85,6 +86,11 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
                         @Override
                         protected boolean logFullSqlSwitch() {
                             return logFullSql();
+                        }
+
+                        @Override
+                        protected boolean mapOrm() {
+                            return isMapOrm();
                         }
                     };
                 }

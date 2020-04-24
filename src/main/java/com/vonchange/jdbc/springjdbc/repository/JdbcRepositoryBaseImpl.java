@@ -41,7 +41,10 @@ public    class JdbcRepositoryBaseImpl extends AbstractJbdcRepositoryMysql imple
         return false;
     }
 
-
+    @Override
+    protected boolean isMapOrm() {
+        return false;
+    }
 
 
 }

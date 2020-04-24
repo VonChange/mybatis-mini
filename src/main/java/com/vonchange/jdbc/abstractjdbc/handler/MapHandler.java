@@ -33,8 +33,10 @@ import java.util.Map;
 public class MapHandler implements ResultSetExtractor<Map<String,Object>> {
 
        private  String sql;
-       public  MapHandler(String sql){
+       private boolean orm;
+       public  MapHandler(String sql,boolean orm){
            this.sql=sql;
+           this.orm=orm;
        }
     /**
      * Converts the first row in the <core>ResultSet</core> into a
@@ -51,6 +53,10 @@ public class MapHandler implements ResultSetExtractor<Map<String,Object>> {
     }
   
     private Map<String,Object> toMap(ResultSet rs) throws SQLException {
-       return HandlerUtil.rowToMap(rs, SqlCommentUtil.getLower(sql),SqlCommentUtil.getOrm(sql));
+        boolean isOrm = SqlCommentUtil.getOrm(sql);
+        if(!isOrm){
+            isOrm=this.orm;
+        }
+       return HandlerUtil.rowToMap(rs, SqlCommentUtil.getLower(sql),isOrm);
     }
 }
