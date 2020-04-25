@@ -5,10 +5,9 @@ import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
 import com.vonchange.jdbc.abstractjdbc.config.Constants;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.MdWithInnerIdTemp;
 import com.vonchange.jdbc.abstractjdbc.util.markdown.bean.SqlInfo;
+import com.vonchange.mybatis.common.util.FileUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
 import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
-import jodd.io.FileUtil;
-import jodd.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -244,7 +243,7 @@ public class MarkdownUtil {
             return mdWithInnerIdTemp;
         }
 
-        String[] sqlIds = StringUtil.split(sqlId, ".");
+        String[] sqlIds = StringUtils.split(sqlId, ".");
         if (sqlIds.length < 2) {
             throw  new MybatisMinRuntimeException("error config  id:"+sqlId);
         }

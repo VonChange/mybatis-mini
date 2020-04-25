@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -73,13 +74,13 @@ public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
     public List<T> extractData(ResultSet rs) throws SQLException {
         try {
             return this.toBeanList(rs, type);
-        } catch (IntrospectionException | InstantiationException | IllegalAccessException  e) {
+        } catch (IntrospectionException  | IllegalAccessException | InvocationTargetException e) {
             log.error("Exception ", e);
         }
         return new ArrayList<>();
     }
 
-    private List<T> toBeanList(ResultSet rs, Class<? extends T> type) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException{
+    private List<T> toBeanList(ResultSet rs, Class<? extends T> type) throws SQLException, IntrospectionException, IllegalAccessException, InvocationTargetException {
         List<T> results = new ArrayList<>();
         if (!rs.next()) {
             return results;

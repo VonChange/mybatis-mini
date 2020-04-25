@@ -47,8 +47,8 @@ public class MapListHandler implements ResultSetExtractor<List<Map<String,Object
 			return result;
 		}
 		do {
-			result.add(HandlerUtil.rowToMap(rs, SqlCommentUtil.getLower(sql),
-					SqlCommentUtil.getOrm(sql)));
+			result.add(HandlerUtil.rowToMap(rs, SqlCommentUtil.getLowerNo(sql),
+					SqlCommentUtil.getOrmNo(sql)));
 		} while (rs.next());
 		return result;
 	}

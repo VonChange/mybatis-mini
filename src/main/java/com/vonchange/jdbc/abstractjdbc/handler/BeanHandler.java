@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -67,7 +68,7 @@ public class BeanHandler<T> implements ResultSetExtractor<T> {
 		T entity = null;
 		try {
 			entity = beanProcessor.createBean(rs, type);
-		} catch (IntrospectionException|InstantiationException|IllegalAccessException e) {
+		} catch (IntrospectionException  | IllegalAccessException | InvocationTargetException e) {
 			log.error("exception",e);
 		}
 		return entity;

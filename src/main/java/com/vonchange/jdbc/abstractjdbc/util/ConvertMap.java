@@ -3,7 +3,6 @@ package com.vonchange.jdbc.abstractjdbc.util;
 
 import com.vonchange.mybatis.common.util.ConvertUtil;
 import com.vonchange.mybatis.common.util.StringUtils;
-import com.vonchange.mybatis.config.Constant;
 import com.vonchange.mybatis.tpl.OrmUtil;
 import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
 
@@ -12,6 +11,8 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -39,7 +40,7 @@ public class ConvertMap {
      *  Map to JavaBean
      */ 
     @SuppressWarnings("rawtypes") 
-    public static Object convertMap(Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InstantiationException {
+    public static Object convertMap(Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InvocationTargetException {
         BeanInfo beanInfo = Introspector.getBeanInfo(type);
         Object entity = null;
         try {
@@ -76,7 +77,8 @@ public class ConvertMap {
                     continue;
                 }
                 value= ConvertUtil.toObject(value,propertyType);
-                Constant.BeanUtil.setProperty(entity, propertyName, value);
+                Method writeMethod = property.getWriteMethod();
+                writeMethod.invoke(entity,value);
             }
         }
         return entity;

@@ -26,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -79,13 +80,13 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
         int pageSize = abstractPageWork.getPageSize();
         try {
             return this.toBeanList(rs, type, pageSize);
-        } catch (IntrospectionException|InstantiationException|IllegalAccessException e) {
+        } catch (IntrospectionException  | IllegalAccessException | InvocationTargetException e) {
             logger.error("Exception ", e);
         }
-        return new PageImpl<>(new ArrayList<T>());
+        return new PageImpl<>(new ArrayList<>());
     }
     @SuppressWarnings("unchecked")
-    private Page<T> toBeanList(ResultSet rs, Class<? extends T> type, int pageSize) throws SQLException, IntrospectionException, InstantiationException, IllegalAccessException {
+    private Page<T> toBeanList(ResultSet rs, Class<? extends T> type, int pageSize) throws SQLException, IntrospectionException, IllegalAccessException, InvocationTargetException {
         List<T> result = new ArrayList<>();
         Map<String, Object> extData = new HashMap<>();
         if (!rs.next()) {

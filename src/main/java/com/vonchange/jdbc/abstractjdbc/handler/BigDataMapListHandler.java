@@ -64,8 +64,8 @@ public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<Stri
 		int pageNum=0;
 		long count=0;
 		do {
-			result.add(HandlerUtil.rowToMap(rs, SqlCommentUtil.getLower(sql)
-					,SqlCommentUtil.getOrm(sql)));
+			result.add(HandlerUtil.rowToMap(rs, SqlCommentUtil.getLowerNo(sql)
+					,SqlCommentUtil.getOrmNo(sql)));
 			pageItem++;
 			count++;
 			if(pageItem==pageSize){

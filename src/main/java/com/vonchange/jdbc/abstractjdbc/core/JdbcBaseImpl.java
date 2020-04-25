@@ -19,7 +19,6 @@ public abstract class JdbcBaseImpl implements IJdbcBase{
     protected abstract boolean logReadSwitch();
     protected abstract boolean logWriteSwitch();
     protected abstract boolean logFullSqlSwitch();
-    protected abstract boolean mapOrm();
 
     @Override
     public  <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, Object... args) {
@@ -58,7 +57,7 @@ public abstract class JdbcBaseImpl implements IJdbcBase{
     public Map<String, Object> queryUniqueResultMap(DataSourceWrapper dataSourceWrapper,String sql, Object... args) {
         logSql(Constants.EnumRWType.read,sql, args);
         MyJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,Constants.EnumRWType.read,sql);
-        return jdbcTemplate.query(sql, new MapHandler(sql,mapOrm()), args);
+        return jdbcTemplate.query(sql, new MapHandler(sql), args);
     }
     @Override
     public   Object queryOneColumn(DataSourceWrapper dataSourceWrapper,String sql, int columnIndex, Object... args) {

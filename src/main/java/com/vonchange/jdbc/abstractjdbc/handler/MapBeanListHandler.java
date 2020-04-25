@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -79,13 +80,13 @@ public class MapBeanListHandler<T> implements ResultSetExtractor<Map<String, T>>
     public Map<String, T> extractData(ResultSet rs) throws SQLException {
         try {
             return this.toBeanList(rs, type);
-        } catch (IllegalAccessException|IntrospectionException|InstantiationException e) {
+        } catch (IllegalAccessException | IntrospectionException | InvocationTargetException e) {
             log.error("",e);
         }
         return  new HashMap<>();
     }
     @SuppressWarnings("unchecked")
-    private  Map<String, T> toBeanList(ResultSet rs,  Class<? extends T> type) throws SQLException, IllegalAccessException, IntrospectionException, InstantiationException {
+    private  Map<String, T> toBeanList(ResultSet rs,  Class<? extends T> type) throws SQLException, IllegalAccessException, IntrospectionException, InvocationTargetException {
         Map<String, T> resultMap= new HashMap<>();
         if (!rs.next()) {
             return resultMap;

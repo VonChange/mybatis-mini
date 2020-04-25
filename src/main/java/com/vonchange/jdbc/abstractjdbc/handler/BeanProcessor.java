@@ -20,6 +20,7 @@ package com.vonchange.jdbc.abstractjdbc.handler;
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
 
 import java.beans.IntrospectionException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -36,7 +37,7 @@ public class BeanProcessor {
 	 * @throws SQLException
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> T createBean(ResultSet rs,  Class<T> c) throws SQLException,  IntrospectionException, InstantiationException, IllegalAccessException {
+	public <T> T createBean(ResultSet rs,  Class<T> c) throws SQLException, IntrospectionException, IllegalAccessException, InvocationTargetException {
 		return (T) ConvertMap.convertMap(c,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
 	}
 
