@@ -1,0 +1,154 @@
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2019 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+package com.vonchange.jsqlparser.statement.upsert;
+
+import java.util.List;
+
+import com.vonchange.jsqlparser.expression.Expression;
+import com.vonchange.jsqlparser.expression.operators.relational.ItemsList;
+import com.vonchange.jsqlparser.schema.Column;
+import com.vonchange.jsqlparser.schema.Table;
+import com.vonchange.jsqlparser.statement.Statement;
+import com.vonchange.jsqlparser.statement.StatementVisitor;
+import com.vonchange.jsqlparser.statement.select.PlainSelect;
+import com.vonchange.jsqlparser.statement.select.Select;
+
+public class Upsert implements Statement {
+
+    private Table table;
+    private List<Column> columns;
+    private ItemsList itemsList;
+    private boolean useValues = true;
+    private Select select;
+    private boolean useSelectBrackets = true;
+    private boolean useDuplicate = false;
+    private List<Column> duplicateUpdateColumns;
+    private List<Expression> duplicateUpdateExpressionList;
+
+    @Override
+    public void accept(StatementVisitor statementVisitor) {
+        statementVisitor.visit(this); 
+    }
+    
+    public void setTable(Table name) {
+        table = name;
+    }
+    
+    public Table getTable() {
+        return table;
+    }
+    
+    public void setColumns(List<Column> list) {
+        columns = list;
+    }
+    
+    public List<Column> getColumns() {
+        return columns;
+    }
+    
+    public void setItemsList(ItemsList list) {
+        itemsList = list;
+    }
+    
+    public ItemsList getItemsList() {
+        return itemsList;
+    }
+    
+    public void setUseValues(boolean useValues) {
+        this.useValues = useValues;
+    }
+    
+    public boolean isUseValues() {
+        return useValues;
+    }
+    
+    public void setSelect(Select select) {
+        this.select = select;
+    }
+    
+    public Select getSelect() {
+        return select;
+    }
+    
+    public void setUseSelectBrackets(boolean useSelectBrackets) {
+        this.useSelectBrackets = useSelectBrackets;
+    }
+    
+    public boolean isUseSelectBrackets() {
+        return useSelectBrackets;
+    }
+    
+    public void setUseDuplicate(boolean useDuplicate) {
+        this.useDuplicate = useDuplicate;
+    }
+    
+    public boolean isUseDuplicate() {
+        return useDuplicate;
+    }
+    
+    public void setDuplicateUpdateColumns(List<Column> duplicateUpdateColumns) {
+        this.duplicateUpdateColumns = duplicateUpdateColumns;
+    }
+    
+    public List<Column> getDuplicateUpdateColumns() {
+        return duplicateUpdateColumns;
+    }
+    
+    public void setDuplicateUpdateExpressionList(List<Expression> duplicateUpdateExpressionList) {
+        this.duplicateUpdateExpressionList = duplicateUpdateExpressionList;
+    }
+    
+    public List<Expression> getDuplicateUpdateExpressionList() {
+        return duplicateUpdateExpressionList;
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("UPSERT INTO ");
+        sb.append(table).append(" ");
+        if (columns != null) {
+            sb.append(PlainSelect.getStringList(columns, true, true)).append(" ");
+        }
+        if (useValues) {
+            sb.append("VALUES ");
+        }
+        
+        if (itemsList != null) {
+            sb.append(itemsList);
+        } else {
+            if (useSelectBrackets) {
+                sb.append("(");
+            }
+            if (select != null) {
+                sb.append(select);
+            }
+            if (useSelectBrackets) {
+                sb.append(")");
+            }
+        }
+
+        if (useDuplicate) {
+            sb.append(" ON DUPLICATE KEY UPDATE ");
+            for (int i = 0; i < getDuplicateUpdateColumns().size(); i++) {
+                if (i != 0) {
+                    sb.append(", ");
+                }
+                sb.append(duplicateUpdateColumns.get(i)).append(" = ");
+                sb.append(duplicateUpdateExpressionList.get(i));
+            }
+        }
+        
+        return sb.toString();
+    }
+
+}
+
