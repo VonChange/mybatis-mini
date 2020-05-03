@@ -17,17 +17,10 @@ public class ConstantJdbc {
     public  static final String MDINITVERSION= "1.0";
     public static  class  DataSource{
         public static final String DEFAULT = "dataSource";
-        public static final String DEFAULTES = "esDataSource";
         public static final String FLAG = "@ds:";
     }
-    public static final String CACHEPRE = "sql_";
     public static final String COUNTFLAG = "Count";
-    public static final String CACHEID = " @id";
-    public static final String ENDSQL = "Sql";
-    public static final String SQLFATH = "sql";
     public static final String MAPFIELDSPLIT = "#";
-    public static final String THREADNUMNAME="spring.jdbc.thread";
-    public static final  String THREADNUM="16";
     public static  class  Dialog{
         public static final String MYSQL = "mysql";
         public static final String ORACLE = "oracle";
