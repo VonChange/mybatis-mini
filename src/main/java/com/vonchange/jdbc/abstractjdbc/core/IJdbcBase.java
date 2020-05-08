@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface IJdbcBase {
-    Object insert(DataSourceWrapper dataSourceWrapper, String sql, Object[] parameter);
+    <T> int insert(DataSourceWrapper dataSourceWrapper,T entity, String sql,List<String> columnReturn, Object[] parameter);
+
+    int insert(DataSourceWrapper dataSourceWrapper, String sql, Object[] parameter);
 
     <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, Object... args);
 

@@ -17,6 +17,7 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 
+import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -96,9 +97,8 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
         int pageItem = 0;
         int pageNum = 0;
         long count = 0;
-        BeanProcessor beanProcessor = new BeanProcessor();
         do {
-            result.add(beanProcessor.createBean(rs, type));
+            result.add(ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
             pageItem++;
             count++;
             if (pageItem == pageSize) {

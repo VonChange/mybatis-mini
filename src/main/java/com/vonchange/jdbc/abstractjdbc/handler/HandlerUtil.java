@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class HandlerUtil {
     private HandlerUtil() { throw new IllegalStateException("Utility class");}
-    public static Map<String,Object> rowToMap(ResultSet rs,boolean lower,boolean orm) throws SQLException {
+    public static Map<String,Object> rowToMap(ResultSet rs,boolean lower,boolean orm,String genColumn) throws SQLException {
         Map<String,Object> resultMap = new LinkedHashMap<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int cols = rsmd.getColumnCount();
@@ -30,12 +30,21 @@ public class HandlerUtil {
             if(orm){
                 columnName= OrmUtil.toFiled(columnName.toLowerCase());
             }
+            if(columnName.equalsIgnoreCase("GENERATED_KEY")){
+                columnName=genColumn;
+            }
             resultMap.put(columnName, rs.getObject(col));
         }
         return resultMap;
     }
     public static Map<String,Object> rowToMap(ResultSet rs) throws SQLException{
         return  rowToMap(rs,false,false);
+    }
+    public static Map<String,Object> rowToMap(ResultSet rs,String genColumn) throws SQLException{
+        return  rowToMap(rs,false,false,genColumn);
+    }
+    public static Map<String,Object> rowToMap(ResultSet rs,boolean lower,boolean orm) throws SQLException {
+        return rowToMap(rs,lower,orm,null);
     }
 
 }

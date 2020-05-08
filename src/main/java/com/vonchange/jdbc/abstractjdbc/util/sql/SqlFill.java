@@ -1,7 +1,10 @@
 package com.vonchange.jdbc.abstractjdbc.util.sql;
 
-import com.vonchange.jdbc.abstractjdbc.util.date.DateFormatUtils;
+import com.vonchange.mybatis.common.util.time.TimeUtil;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Date;
 
 /**
@@ -16,19 +19,21 @@ public class SqlFill {
         throw new IllegalStateException("Utility class");
     }
 
-    private static final String FORMAT = "yyyy-MM-dd HH:mm:ss";
-
     private static String getParameterValue(Object obj) {
         if (null == obj) {
             return "NULL";
-        }
-        if (obj instanceof Date) {
-            return "'" + DateFormatUtils.format((Date) obj, FORMAT) + "'";
         }
         if (obj instanceof String) {
             // 排除恶意sql漏洞
             //return "'" + obj.toString().replaceAll("([';])+|(--)+", "") + "'";
             return "'" + obj.toString() + "'";
+        }
+        if (obj instanceof Date) {
+            return "'"+ TimeUtil.fromDate((Date) obj).toString()+"'";
+            //return "'" + DateFormatUtils.format((Date) obj, FORMAT) + "'";
+        }
+        if(obj instanceof LocalDateTime|| obj instanceof LocalDate || obj instanceof LocalTime){
+            return "'"+obj.toString()+"'";
         }
         return obj.toString();
     }

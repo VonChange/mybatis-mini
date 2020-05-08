@@ -40,14 +40,18 @@ public class ConvertMap {
      *  Map to JavaBean
      */ 
     @SuppressWarnings("rawtypes") 
-    public static Object convertMap(Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InvocationTargetException {
-        BeanInfo beanInfo = Introspector.getBeanInfo(type);
-        Object entity = null;
-        try {
-             entity = type.newInstance();
-        }catch (InstantiationException e){
-            throw new  MybatisMinRuntimeException("java.lang.InstantiationException "+type.getName()+" need no-arguments constructor");
+    public static <T> T convertMap(T entity,Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InvocationTargetException {
+        if(null!=entity){
+            type=entity.getClass();
         }
+        if(null==entity){
+            try {
+                entity = (T) type.newInstance();
+            }catch (InstantiationException e){
+                throw new  MybatisMinRuntimeException("java.lang.InstantiationException "+type.getName()+" need no-arguments constructor");
+            }
+        }
+        BeanInfo beanInfo = Introspector.getBeanInfo(type);
         if(null==map||map.isEmpty()){
             return  entity;
         }
@@ -82,6 +86,9 @@ public class ConvertMap {
             }
         }
         return entity;
+    }
+    public static <T> T convertMap(Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InvocationTargetException {
+         return  convertMap(null,type,map);
     }
 
 

@@ -77,10 +77,16 @@ public abstract class JdbcBaseImpl implements IJdbcBase{
 
     //write
     @Override
-    public Object insert(DataSourceWrapper dataSourceWrapper,String sql, Object[] parameter) {
+    public <T> int insert(DataSourceWrapper dataSourceWrapper,T entity,String sql,List<String> columnReturn, Object[] parameter) {
         logSql(Constants.EnumRWType.write,sql, parameter);
         MyJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,Constants.EnumRWType.write,sql);
-        return jdbcTemplate.insert(sql, new ScalarHandler(), parameter);
+        return jdbcTemplate.insert(sql,columnReturn, new BeanInsertHandler<>(entity), parameter);
+    }
+    @Override
+    public  int insert(DataSourceWrapper dataSourceWrapper,String sql,Object[] parameter) {
+        logSql(Constants.EnumRWType.write,sql, parameter);
+        MyJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,Constants.EnumRWType.write,sql);
+        return jdbcTemplate.insert(sql,null, new ScalarHandler(), parameter);
     }
 
     @Override

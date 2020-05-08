@@ -10,8 +10,8 @@ import java.util.List;
 public class SqlParmeter {
     private String sql;
     private Object[] parameters;
-    private String idName;
     private List<String> propertyNames;
+	private  List<String> columnReturns;
 
 	public List<String> getPropertyNames() {
 		return propertyNames;
@@ -22,23 +22,25 @@ public class SqlParmeter {
 	}
 
 	public String getSql() {
-	return sql;
-}
+	   return sql;
+    }
     public void setSql(String sql) {
-	this.sql = sql;
-}
+	   this.sql = sql;
+    }
     public Object[] getParameters() {
-	return parameters;
-}
+	  return parameters;
+    }
     public void setParameters(Object[] parameters) {
-	this.parameters = parameters;
-}
+	  this.parameters = parameters;
+    }
 
-	public String getIdName() {
-		return idName;
+
+	public List<String> getColumnReturns() {
+		return columnReturns;
 	}
 
-	public void setIdName(String idName) {
-		this.idName = idName;
+	public void setColumnReturns(List<String> columnReturns) {
+		this.columnReturns = columnReturns;
 	}
+
 }

@@ -13,11 +13,11 @@ public interface JdbcRepository {
     DataSourceWrapper getReadDataSource();
     <T> List<T> queryList(Class<T> type, String sqlId, Map<String, Object> parameter);
     int update(String sqlId, Map<String, Object> parameter);
-    Object insert(String sqlId, Map<String, Object> parameter);
-    <T> Object  insert(T entity);
+    int insert(String sqlId, Map<String, Object> parameter);
+    <T> int  insert(T entity);
     <T> int  update(T entity);
     <T> int  updateAllField(T entity);
-    <T> Object  insertDuplicateKey(T entity);
+    <T> int  insertDuplicateKey(T entity);
     <T> T queryOne(Class<T> type, String sqlId, Map<String, Object> parameter);
     <T> T queryById(Class<T> type,Object id);
     <T> Page<T> queryPage(Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter);
@@ -35,11 +35,11 @@ public interface JdbcRepository {
     //带 dataSource
     <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Map<String, Object> parameter);
     int update(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter);
-    Object insert(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter);
-    <T> Object  insert(DataSourceWrapper dataSourceWrapper,T entity);
+    int insert(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter);
+    <T> int  insert(DataSourceWrapper dataSourceWrapper,T entity);
     <T> int  update(DataSourceWrapper dataSourceWrapper,T entity);
     <T> int  updateAllField(DataSourceWrapper dataSourceWrapper,T entity);
-    <T> Object  insertDuplicateKey(DataSourceWrapper dataSourceWrapper,T entity);
+    <T> int  insertDuplicateKey(DataSourceWrapper dataSourceWrapper,T entity);
     <T> T queryOne(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Map<String, Object> parameter);
     <T> T queryById(DataSourceWrapper dataSourceWrapper,Class<T> type,Object id);
     <T> Page<T> queryPage(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Pageable pageable, Map<String, Object> parameter);

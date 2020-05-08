@@ -16,6 +16,7 @@
  */
 package com.vonchange.jdbc.abstractjdbc.handler;
 
+import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -85,10 +86,9 @@ public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
         if (!rs.next()) {
             return results;
         }
-        BeanProcessor beanProcessor = new BeanProcessor();
         T entity;
         do {
-            entity = beanProcessor.createBean(rs, type);
+            entity = ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
             results.add(entity);
         } while (rs.next());
         return results;

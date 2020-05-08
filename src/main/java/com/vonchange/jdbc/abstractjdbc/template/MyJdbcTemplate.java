@@ -6,6 +6,7 @@ import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.List;
 
 public class MyJdbcTemplate extends JdbcTemplate {
     public MyJdbcTemplate() {
@@ -19,24 +20,23 @@ public class MyJdbcTemplate extends JdbcTemplate {
     public MyJdbcTemplate(DataSource dataSource) {
        super(dataSource);
     }
-    protected <T> T insert(final PreparedStatementCreator psc, final PreparedStatementSetter pss, final ResultSetExtractor<T> rse) throws DataAccessException {
+    protected <T> int insert(final PreparedStatementCreator psc, final PreparedStatementSetter pss, final ResultSetExtractor<T> rse) throws DataAccessException {
 
         logger.debug("Executing prepared SQL update");
-        return execute(psc, new PreparedStatementCallback<T>() {
+        return execute(psc, new PreparedStatementCallback<Integer>() {
 
-            public T doInPreparedStatement(PreparedStatement ps) throws SQLException {
-                T generatedKeys = null;
+            public Integer doInPreparedStatement(PreparedStatement ps) throws SQLException {
                 try {
                     if (pss != null) {
                         pss.setValues(ps);
                     }
-                    ps.executeUpdate();
+                    int result = ps.executeUpdate();
                     ResultSet resultSet = ps.getGeneratedKeys();
-                    generatedKeys = rse.extractData(resultSet);
-                    if (logger.isDebugEnabled()) {
+                     rse.extractData(resultSet);
+                   /* if (logger.isDebugEnabled()) {
                         logger.debug("generatedKeys : " + generatedKeys);
-                    }
-                    return generatedKeys;
+                    }*/
+                    return result;
                 } finally {
                     if (pss instanceof ParameterDisposer) {
                         ((ParameterDisposer) pss).cleanupParameters();
@@ -46,32 +46,31 @@ public class MyJdbcTemplate extends JdbcTemplate {
         });
     }
 
-    private <T> T insert(String sql, PreparedStatementSetter pss, ResultSetExtractor<T> rse) throws DataAccessException {
-        return insert(new InsertPreparedStatementCreator(sql), pss, rse);
+    private <T> int insert(String sql,List<String> columnReturn, PreparedStatementSetter pss, ResultSetExtractor<T> rse) throws DataAccessException {
+         return insert(new InsertPreparedStatementCreator(sql,columnReturn), pss, rse);
     }
 
 
-    public <T> T insert(String sql, ResultSetExtractor<T> rse, Object... params) {
-        return insert(sql, newArgPreparedStatementSetter(params), rse);
+    public <T> int insert(String sql, List<String> columnReturn, ResultSetExtractor<T> rse, Object... params) {
+         return insert(sql,columnReturn, newArgPreparedStatementSetter(params), rse);
     }
     private static class InsertPreparedStatementCreator implements PreparedStatementCreator, SqlProvider {
 
         private final String sql;
+        private final List<String> columnReturn;
 
-        public InsertPreparedStatementCreator(String sql) {
+        public InsertPreparedStatementCreator(String sql,List<String> columnReturn) {
             Assert.notNull(sql, "SQL must not be null");
             this.sql = sql;
+            this.columnReturn=columnReturn;
         }
 
         public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-			/*//方言
-			String dialog = SqlCommentUtil.getDialect(this.sql);
-			if(dialog.equals(SqlCommentUtil.Dialect.ORACLE)){
-				//  暂时写死  有变动 从sql注释里  定义 获取
-				//,  new String[]{"ID"} ,  new String[]{"id","code_no"}
-				return con.prepareStatement(this.sql, new String[]{"ID"});
-			}*/
+          /*  if(null==columnReturn||columnReturn.isEmpty()){
+                return con.prepareStatement(this.sql,  Statement.RETURN_GENERATED_KEYS);
+            }*/
             return con.prepareStatement(this.sql,  Statement.RETURN_GENERATED_KEYS);
+            //return con.prepareStatement(this.sql, columnReturn.toArray(new String[0]));
         }
         public String getSql() {
             return this.sql;

@@ -176,16 +176,12 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         return 1;
     }
 
-    public final <T> Object insert(DataSourceWrapper dataSourceWrapper, T entity) {
+    public final <T> int insert(DataSourceWrapper dataSourceWrapper, T entity) {
         SqlParmeter sqlParmeter = generateInsertSql(entity, false, false);
-        Object id = getJdbcBase().insert(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
-        if (null != id) {
-            Constant.BeanUtil.setProperty(entity, sqlParmeter.getIdName(), id);
-        }
-        return Constant.BeanUtil.getProperty(entity, sqlParmeter.getIdName());
+        return getJdbcBase().insert(dataSourceWrapper,entity, sqlParmeter.getSql(),sqlParmeter.getColumnReturns(), sqlParmeter.getParameters());
     }
 
-    public final <T> Object insert(T entity) {
+    public final <T> int insert(T entity) {
         return insert(null, entity);
     }
 
@@ -252,17 +248,13 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         return updateAllField(null, entity);
     }
 
-    public final <T> Object insertDuplicateKey(T entity) {
+    public final <T> int insertDuplicateKey(T entity) {
         return insertDuplicateKey(null, entity);
     }
 
-    public final <T> Object insertDuplicateKey(DataSourceWrapper dataSourceWrapper, T entity) {
+    public final <T> int insertDuplicateKey(DataSourceWrapper dataSourceWrapper, T entity) {
         SqlParmeter sqlParmeter = generateInsertSql(entity, true, false);
-        Object id = getJdbcBase().insert(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
-        if (null != id) {
-            Constant.BeanUtil.setProperty(entity, sqlParmeter.getIdName(), id);
-        }
-        return Constant.BeanUtil.getProperty(entity, sqlParmeter.getIdName());
+        return getJdbcBase().insert(dataSourceWrapper, entity,sqlParmeter.getSql(),sqlParmeter.getColumnReturns(), sqlParmeter.getParameters());
     }
 
     private void initEntityInfo(Class<?> clazz) {
@@ -300,11 +292,11 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         if (duplicate) {
             insertSql = insertSql + " ON DUPLICATE KEY UPDATE " + entityInsertResult.getUpdateStr();
         }
-        String idName = entityInfo.getIdFieldName();
-        if(null==idName){
-            throw new MybatisMinRuntimeException("need entity field @ID");
-        }
-        sqlParmeter.setIdName(idName);
+       // String generatedValueName = entityInfo.getGeneratedValueFieldName();
+       /* if(null==generatedValueName){
+            throw new MybatisMinRuntimeException("need entity field @GeneratedValueName");
+        }*/
+        sqlParmeter.setColumnReturns(entityInfo.getColumnReturns());
         sqlParmeter.setSql(insertSql);
         sqlParmeter.setParameters(entityInsertResult.getValueList().toArray());
         return sqlParmeter;
@@ -766,11 +758,11 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
         return getJdbcBase().update(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
     }
 
-    public Object insert(String sqlId, Map<String, Object> parameter) {
+    public int insert(String sqlId, Map<String, Object> parameter) {
         return insert(null, sqlId, parameter);
     }
 
-    public Object insert(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
+    public int insert(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
         String sql = sqlinfo.getSql();
         SqlParmeter sqlParmeter = getSqlParmeter(sql, parameter);

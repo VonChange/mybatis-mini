@@ -18,6 +18,7 @@ package com.vonchange.jdbc.abstractjdbc.handler;
 
 
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
+import com.vonchange.mybatis.tpl.EntityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -34,17 +35,17 @@ import java.sql.SQLException;
  * @param <T>
  *            the target bean type
  */
-public class BeanHandler<T> implements ResultSetExtractor<T> {
+public class BeanInsertHandler<T> implements ResultSetExtractor<T> {
 
-	private static final Logger log = LoggerFactory.getLogger(BeanHandler.class);
+	private static final Logger log = LoggerFactory.getLogger(BeanInsertHandler.class);
 	/**
 	 * The Class of beans produced by this handler.
 	 */
-	private final Class<? extends T> type;
+	private final T entity;
 
 
-	public BeanHandler(Class<? extends T> type) {
-		this.type = type;
+	public BeanInsertHandler(T entity) {
+		this.entity = entity;
 	}
 
 	/**
@@ -61,13 +62,13 @@ public class BeanHandler<T> implements ResultSetExtractor<T> {
 	 */
 	@Override
 	public T extractData(ResultSet rs) throws SQLException {
-		return rs.next() ? this.toBean(rs, this.type) : null;
+		return rs.next() ? this.toBean(rs, this.entity) : null;
 	}
 
-	private T toBean(ResultSet rs, Class<? extends T> type) throws SQLException {
-		T entity = null;
+	private T toBean(ResultSet rs, T entity) throws SQLException {
+		String genColumn = EntityUtil.getEntityInfo(entity.getClass()).getGenColumn();
 		try {
-			entity = ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
+			ConvertMap.convertMap(entity,null,ConvertMap.newMap(HandlerUtil.rowToMap(rs,genColumn)));
 		} catch (IntrospectionException  | IllegalAccessException | InvocationTargetException e) {
 			log.error("exception",e);
 		}
