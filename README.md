@@ -1,1 +1,1 @@
-抽象jdbc查询框架
+抽象jdbc查询框架 底层springJdbc 支持mybatis动态sql能力

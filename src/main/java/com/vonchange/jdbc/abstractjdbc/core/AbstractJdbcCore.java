@@ -495,9 +495,16 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     private String generateQueryByIdSql(Class<?> type) {
         initEntityInfo(type);
         EntityInfo entityInfo = EntityUtil.getEntityInfo(type);
+        Map<String, EntityField> fieldMap = entityInfo.getFieldMap();
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String,EntityField> entry:fieldMap.entrySet()) {
+            if(entry.getValue().getIsColumn()){
+                sb.append(entry.getValue().getColumnName()).append(",");
+            }
+        }
         String tableName = entityInfo.getTableName();
         String idName = entityInfo.getIdColumnName();
-        return StringUtils.format("select * from {0} where  {1} = ?", tableName, idName);
+        return StringUtils.format("select {0} from {1} where  {2} = ?", sb.substring(0,sb.length()-1),tableName, idName);
     }
 
     public final <T> List<T> queryList(DataSourceWrapper dataSourceWrapper, Class<T> type, String sqlId, Map<String, Object> parameter) {

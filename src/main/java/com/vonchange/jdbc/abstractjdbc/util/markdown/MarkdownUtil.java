@@ -207,6 +207,10 @@ public class MarkdownUtil {
         MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId,false);
         return  MarkdownDataUtil.getSql(mdWithInnerIdTemp.getMarkdownDTO(),mdWithInnerIdTemp.getInnnerId());
     }
+    public static boolean  containsSqlId(String sqlId) {
+        MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId,false);
+        return mdWithInnerIdTemp.getMarkdownDTO().getContentMap().containsKey(sqlId);
+    }
     public static SqlInfo getSqlInfo(String sqlId,boolean needReadMdLastModified) {
         MdWithInnerIdTemp mdWithInnerIdTemp=loadConfigData(sqlId,needReadMdLastModified);
         String sql = MarkdownDataUtil.getSql(mdWithInnerIdTemp.getMarkdownDTO(),mdWithInnerIdTemp.getInnnerId());
