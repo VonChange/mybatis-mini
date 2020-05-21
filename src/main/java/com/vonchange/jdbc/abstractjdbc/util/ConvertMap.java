@@ -38,8 +38,8 @@ public class ConvertMap {
 
     /**
      *  Map to JavaBean
-     */ 
-    @SuppressWarnings("rawtypes") 
+     */
+    @SuppressWarnings("unchecked")
     public static <T> T convertMap(T entity,Class type, Map<String,Object> map) throws IntrospectionException, IllegalAccessException, InvocationTargetException {
         if(null!=entity){
             type=entity.getClass();
