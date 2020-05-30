@@ -16,7 +16,7 @@ public class MarkdownDataUtil{
         if(StringUtils.isBlank(sql)&&!StringUtils.endsWith(id, ConstantJdbc.COUNTFLAG)){
             throw  new MybatisMinRuntimeException(markdownDTO.getId()+" can not find id:"+id);
         }
-        /* 支持{@sql */
+        /* 支持[@sql */
         return MarkdownUtil.getSqlSpinner(markdownDTO,sql);
     }
 }

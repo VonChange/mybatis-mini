@@ -173,11 +173,11 @@ public class MarkdownUtil {
          if(StringUtils.isBlank(sql)){
              return sql;
          }
-        if(!sql.contains("{@sql")){
+        if(!sql.contains("[@sql")){
             return  sql;
         }
-        String startSym="{@sql";
-        String endSym="}";
+        String startSym="[@sql";
+        String endSym="]";
         int len = sql.length();
         int startLen=startSym.length();
         int endLen=endSym.length();
