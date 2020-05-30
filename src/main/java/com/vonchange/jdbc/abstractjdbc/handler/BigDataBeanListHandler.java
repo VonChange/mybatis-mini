@@ -84,7 +84,7 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
         } catch (IntrospectionException  | IllegalAccessException | InvocationTargetException e) {
             logger.error("Exception ", e);
         }
-        return new PageImpl<>(new ArrayList<>());
+        return new PageImpl<>(new ArrayList<T>());
     }
     @SuppressWarnings("unchecked")
     private Page<T> toBeanList(ResultSet rs, Class<? extends T> type, int pageSize) throws SQLException, IntrospectionException, IllegalAccessException, InvocationTargetException {
@@ -98,7 +98,7 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
         int pageNum = 0;
         long count = 0;
         do {
-            result.add(ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
+            result.add((T) ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
             pageItem++;
             count++;
             if (pageItem == pageSize) {
