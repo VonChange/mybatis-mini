@@ -521,7 +521,14 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     public <T> T queryOne(DataSourceWrapper dataSourceWrapper, Class<T> type, String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlInfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlInfo.getSql(), parameter);
-        return getJdbcBase().queryOne(dataSourceWrapper, type, getDefaultDialect().getLimitOne(sqlParmeter.getSql()), sqlParmeter.getParameters());
+        List<T> list= getJdbcBase().queryList(dataSourceWrapper, type, sqlParmeter.getSql(), sqlParmeter.getParameters());
+        if(list.isEmpty()){
+            return null;
+        }
+        if(list.size()>1){
+            log.warn("expect one row but found {} rows",list.size());
+        }
+        return list.get(0);
     }
 
     public <T> T queryOne(Class<T> type, String sqlId, Map<String, Object> parameter) {
@@ -532,7 +539,14 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     public Map<String, Object> queryMapOne(DataSourceWrapper dataSourceWrapper, String sqlId, Map<String, Object> parameter) {
         SqlInfo sqlinfo = getSqlInfo(sqlId,parameter);
         SqlParmeter sqlParmeter = getSqlParmeter(sqlinfo.getSql(), parameter);
-        return getJdbcBase().queryUniqueResultMap(dataSourceWrapper, getDefaultDialect().getLimitOne(sqlParmeter.getSql()), sqlParmeter.getParameters());
+        List<Map<String, Object>> list= getJdbcBase().queryListResultMap(dataSourceWrapper, sqlParmeter.getSql(), sqlParmeter.getParameters());
+        if(list.isEmpty()){
+            return null;
+        }
+        if(list.size()>1){
+            log.warn("expect one row but found {} rows",list.size());
+        }
+        return list.get(0);
     }
 
     public Map<String, Object> queryMapOne(String sqlId, Map<String, Object> parameter) {
