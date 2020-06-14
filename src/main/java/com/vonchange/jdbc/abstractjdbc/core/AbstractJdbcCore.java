@@ -526,7 +526,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
             return null;
         }
         if(list.size()>1){
-            log.warn("expect one row but found {} rows",list.size());
+            log.warn("{} expect one row but found {} rows",sqlId,list.size());
         }
         return list.get(0);
     }
@@ -544,7 +544,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
             return null;
         }
         if(list.size()>1){
-            log.warn("expect one row but found {} rows",list.size());
+            log.warn("{} expect one row but found {} rows",sqlId,list.size());
         }
         return list.get(0);
     }
