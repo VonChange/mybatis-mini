@@ -15,7 +15,6 @@ public interface Dialect {
      * @return 分页sql
      */
     String getPageSql(String sql, int beginNo, int pageSize);
-    String getLimitOne(String sql);
     int getBigDataFetchSize();
     int getFetchSize();
     String getDialogName();

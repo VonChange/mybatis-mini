@@ -22,10 +22,6 @@ public class OracleDialect implements Dialect {
         return 	StringUtils.format(sqlOrg, sql, ConvertUtil.toString(beginNo), ConvertUtil.toString(pageSize));
     }
 
-    @Override
-    public String getLimitOne(String sql) {
-        return sql;
-    }
 
     @Override
     public int getBigDataFetchSize() {

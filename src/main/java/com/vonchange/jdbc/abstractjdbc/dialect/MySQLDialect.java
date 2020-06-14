@@ -17,14 +17,7 @@ public class MySQLDialect implements Dialect {
     	return 	StringUtils.format("{0} limit {1},{2} ", sql, ConvertUtil.toString(beginNo), ConvertUtil.toString(pageSize));
     }
 
-    /**
-     * getPageSql(sql,0,1);
-     * @param sql
-     */
-    @Override
-    public String getLimitOne(String sql) {
-        return sql;
-    }
+
 
     @Override
     public int getBigDataFetchSize() {
