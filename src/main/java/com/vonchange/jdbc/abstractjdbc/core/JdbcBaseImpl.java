@@ -1,13 +1,22 @@
 package com.vonchange.jdbc.abstractjdbc.core;
 
 import com.vonchange.jdbc.abstractjdbc.config.Constants;
-import com.vonchange.jdbc.abstractjdbc.handler.*;
+import com.vonchange.jdbc.abstractjdbc.handler.AbstractMapPageWork;
+import com.vonchange.jdbc.abstractjdbc.handler.AbstractPageWork;
+import com.vonchange.jdbc.abstractjdbc.handler.BeanHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.BeanInsertHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.BeanListHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.BigDataBeanListHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.BigDataMapListHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.MapBeanListHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.MapHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.MapListHandler;
+import com.vonchange.jdbc.abstractjdbc.handler.ScalarHandler;
 import com.vonchange.jdbc.abstractjdbc.model.DataSourceWrapper;
 import com.vonchange.jdbc.abstractjdbc.template.MyJdbcTemplate;
 import com.vonchange.jdbc.abstractjdbc.util.sql.SqlFill;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Map;
@@ -34,18 +43,18 @@ public abstract class JdbcBaseImpl implements IJdbcBase{
     }
 
     @Override
-    public Page<Map<String, Object>> queryForBigData(DataSourceWrapper dataSourceWrapper,String sql, AbstractMapPageWork pageWork, Object... args) {
+    public void queryForBigData(DataSourceWrapper dataSourceWrapper,String sql, AbstractMapPageWork pageWork, Object... args) {
         logSql(Constants.EnumRWType.read,sql, args);
         MyJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,Constants.EnumRWType.read,sql);
-        return jdbcTemplate.queryBigData(sql, new BigDataMapListHandler(pageWork, sql), args);
+        jdbcTemplate.queryBigData(sql, new BigDataMapListHandler(pageWork, sql), args);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> Page<T> queryForBigData(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, AbstractPageWork<T> pageWork, Object... args) {
+    public <T> void queryForBigData(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, AbstractPageWork<T> pageWork, Object... args) {
         logSql(Constants.EnumRWType.read,sql, args);
         MyJdbcTemplate jdbcTemplate = initJdbcTemplate(dataSourceWrapper,Constants.EnumRWType.read,sql);
-        return (Page<T>) jdbcTemplate.queryBigData(sql, new BigDataBeanListHandler(type, pageWork, sql), args);
+        jdbcTemplate.queryBigData(sql, new BigDataBeanListHandler(type, pageWork, sql), args);
     }
     @Override
     public <T> T queryOne(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, Object... args) {

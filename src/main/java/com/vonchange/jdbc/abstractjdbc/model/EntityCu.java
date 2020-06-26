@@ -5,7 +5,6 @@ import com.vonchange.mybatis.tpl.model.EntityField;
 public class EntityCu {
     private EntityField entityField;
     private Object value;
-    private Boolean isBatch;
     private Boolean duplicate;
     private Boolean nullUpdate;
     private String insertIfNullValue;
@@ -16,10 +15,9 @@ public class EntityCu {
     private Boolean updateValueParam;
     public EntityCu() {
     }
-    public EntityCu(EntityField entityField, Object value,Boolean isBatch,Boolean duplicate,Boolean nullUpdate) {
+    public EntityCu(EntityField entityField, Object value,Boolean duplicate,Boolean nullUpdate) {
         this.entityField = entityField;
         this.value = value;
-        this.isBatch=isBatch;
         this.duplicate=duplicate;
         this.nullUpdate =nullUpdate;
     }
@@ -88,13 +86,6 @@ public class EntityCu {
         this.duplicate = duplicate;
     }
 
-    public Boolean getBatch() {
-        return isBatch;
-    }
-
-    public void setBatch(Boolean batch) {
-        isBatch = batch;
-    }
 
     public EntityField getEntityField() {
         return entityField;

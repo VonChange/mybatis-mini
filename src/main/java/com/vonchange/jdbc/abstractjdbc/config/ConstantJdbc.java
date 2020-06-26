@@ -21,8 +21,4 @@ public class ConstantJdbc {
     }
     public static final String COUNTFLAG = "Count";
     public static final String MAPFIELDSPLIT = "#";
-    public static  class  Dialog{
-        public static final String MYSQL = "mysql";
-        public static final String ORACLE = "oracle";
-    }
 }

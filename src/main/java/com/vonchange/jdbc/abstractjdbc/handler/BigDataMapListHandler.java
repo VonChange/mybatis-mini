@@ -18,10 +18,6 @@ package com.vonchange.jdbc.abstractjdbc.handler;
 
 
 import com.vonchange.mybatis.tpl.sql.SqlCommentUtil;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.sql.ResultSet;
@@ -36,11 +32,9 @@ import java.util.Map;
  * <core>ResultSet</core> row into a <core>Map</core>. This class is thread
  * safe.
  */
-public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<String,Object>>> {
+public  class  BigDataMapListHandler implements ResultSetExtractor<Integer> {
 	private  final String sql;
-	/**
-	 * 0 正常 1 强制小写
-	 */
+
 	private   AbstractMapPageWork abstractPageWork;
 	public BigDataMapListHandler(AbstractMapPageWork abstractPageWork,String sql) {
 		this.sql=sql;
@@ -48,17 +42,21 @@ public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<Stri
 	}
 
 	@Override
-	public Page<Map<String,Object>> extractData(ResultSet rs) throws SQLException {
+	public Integer extractData(ResultSet rs) throws SQLException {
 		int pageSize=abstractPageWork.getPageSize();
-		return this.toMapList(rs,pageSize);
+		this.toMapList(rs,pageSize);
+		return 1;
 	}
 
-	private Page<Map<String,Object>> toMapList(ResultSet rs,int pageSize) throws SQLException {
+	private void toMapList(ResultSet rs,int pageSize) throws SQLException {
 		List<Map<String,Object>> result = new ArrayList<>();
 		Map<String,Object> extData= new HashMap<>();
 		if (!rs.next()) {
 			abstractPageWork.doPage(result,0,extData);
-			return 	new PageImpl<>(result);
+			abstractPageWork.setSize(pageSize);
+			abstractPageWork.setTotalElements(0L);
+			abstractPageWork.setTotalPages(0);
+			return;
 		}
 		int pageItem=0;
 		int pageNum=0;
@@ -77,10 +75,9 @@ public  class  BigDataMapListHandler implements ResultSetExtractor<Page<Map<Stri
 		} while (rs.next());
 		if(!result.isEmpty()){
 			abstractPageWork.doPage(result,pageNum,extData);
-			Pageable pageable=new PageRequest(pageNum,pageSize);
-			return 	new PageImpl<>(result,pageable,count);
 		}
-		Pageable pageable=new PageRequest(pageNum-1,pageSize);
-		return 	new PageImpl<>(result,pageable,count);
+		abstractPageWork.setSize(pageSize);
+		abstractPageWork.setTotalElements(count);
+		abstractPageWork.setTotalPages(pageNum);
 	}
 }

@@ -20,10 +20,6 @@ package com.vonchange.jdbc.abstractjdbc.handler;
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
 import java.beans.IntrospectionException;
@@ -38,14 +34,14 @@ import java.util.Map;
 /**
  * @param <T> the target processor type
  */
-public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
+public class BigDataBeanListHandler<T> implements ResultSetExtractor<Integer> {
     private static final Logger logger = LoggerFactory.getLogger(BigDataBeanListHandler.class);
     /**
      * The Class of beans produced by this handler.
      */
     private final Class<? extends T> type;
     private AbstractPageWork abstractPageWork;
-    private String sql;
+
 
     /**
      * Creates a new instance of BeanListHandler.
@@ -65,7 +61,6 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
     public BigDataBeanListHandler(Class<? extends T> type, AbstractPageWork abstractPageWork, String sql) {
         this.type = type;
         this.abstractPageWork = abstractPageWork;
-        this.sql = sql;
     }
 
     /**
@@ -77,28 +72,31 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
      * @throws SQLException if a database access error occurs
      */
     @Override
-    public Page<T> extractData(ResultSet rs) throws SQLException {
+    public Integer extractData(ResultSet rs) throws SQLException {
         int pageSize = abstractPageWork.getPageSize();
         try {
-            return this.toBeanList(rs, type, pageSize);
+              this.toBeanList(rs, type, pageSize);
         } catch (IntrospectionException  | IllegalAccessException | InvocationTargetException e) {
             logger.error("Exception ", e);
         }
-        return new PageImpl<>(new ArrayList<T>());
+        return 1;
     }
     @SuppressWarnings("unchecked")
-    private Page<T> toBeanList(ResultSet rs, Class<? extends T> type, int pageSize) throws SQLException, IntrospectionException, IllegalAccessException, InvocationTargetException {
+    private void toBeanList(ResultSet rs, Class<? extends T> type, int pageSize) throws SQLException, IntrospectionException, IllegalAccessException, InvocationTargetException {
         List<T> result = new ArrayList<>();
         Map<String, Object> extData = new HashMap<>();
         if (!rs.next()) {
             abstractPageWork.doPage(result, 0, extData);
-            return new PageImpl<>(result);
+            abstractPageWork.setSize(pageSize);
+            abstractPageWork.setTotalElements(0L);
+            abstractPageWork.setTotalPages(0);
+            return ;
         }
         int pageItem = 0;
         int pageNum = 0;
         long count = 0;
         do {
-            result.add((T) ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
+            result.add(ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
             pageItem++;
             count++;
             if (pageItem == pageSize) {
@@ -110,11 +108,10 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Page<T>> {
         } while (rs.next());
         if (!result.isEmpty()) {
             abstractPageWork.doPage(result, pageNum, extData);
-            Pageable pageable = new PageRequest(pageNum, pageSize);
-            return new PageImpl<>(result, pageable, count);
         }
-        Pageable pageable = new PageRequest(pageNum - 1, pageSize);
-        return new PageImpl<>(result, pageable, count);
+        abstractPageWork.setSize(pageSize);
+        abstractPageWork.setTotalElements(count);
+        abstractPageWork.setTotalPages(pageNum);
     }
 
 }

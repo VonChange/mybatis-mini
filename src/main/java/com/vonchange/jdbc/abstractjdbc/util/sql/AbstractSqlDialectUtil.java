@@ -1,9 +1,10 @@
 package com.vonchange.jdbc.abstractjdbc.util.sql;
 
 import com.vonchange.jdbc.abstractjdbc.config.ConstantJdbc;
-import com.vonchange.jdbc.abstractjdbc.dialect.Dialect;
-import com.vonchange.jdbc.abstractjdbc.dialect.MySQLDialect;
-import com.vonchange.jdbc.abstractjdbc.dialect.OracleDialect;
+import com.vonchange.mybatis.dialect.Dialect;
+import com.vonchange.mybatis.dialect.MySQLDialect;
+import com.vonchange.mybatis.dialect.OracleDialect;
+
 
 /**
  * Created by 冯昌义 on 2018/4/17.

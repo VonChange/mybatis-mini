@@ -3,7 +3,6 @@ package com.vonchange.jdbc.abstractjdbc.core;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractMapPageWork;
 import com.vonchange.jdbc.abstractjdbc.handler.AbstractPageWork;
 import com.vonchange.jdbc.abstractjdbc.model.DataSourceWrapper;
-import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Map;
@@ -17,9 +16,9 @@ public interface IJdbcBase {
 
     List<Map<String, Object>> queryListResultMap(DataSourceWrapper dataSourceWrapper,String sql, Object... args);
 
-    Page<Map<String, Object>> queryForBigData(DataSourceWrapper dataSourceWrapper,String sql, AbstractMapPageWork pageWork, Object... args);
+    void queryForBigData(DataSourceWrapper dataSourceWrapper,String sql, AbstractMapPageWork pageWork, Object... args);
 
-    <T> Page<T> queryForBigData(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, AbstractPageWork<T> pageWork, Object... args);
+    <T> void queryForBigData(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, AbstractPageWork<T> pageWork, Object... args);
 
     <T> T queryOne(DataSourceWrapper dataSourceWrapper,Class<T> type, String sql, Object... args);
 
