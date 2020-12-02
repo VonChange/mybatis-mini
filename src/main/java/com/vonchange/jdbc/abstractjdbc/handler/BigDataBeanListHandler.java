@@ -18,6 +18,8 @@ package com.vonchange.jdbc.abstractjdbc.handler;
 
 
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
+import com.vonchange.mybatis.common.util.ConvertUtil;
+import com.vonchange.mybatis.tpl.clazz.ClazzUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -95,8 +97,12 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Integer> {
         int pageItem = 0;
         int pageNum = 0;
         long count = 0;
+        boolean base=false;
+        if(ClazzUtils.isBaseType(type)){
+            base=true;
+        }
         do {
-            result.add(ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
+            result.add(base?ConvertUtil.toObject(rs.getObject(1),type):ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
             pageItem++;
             count++;
             if (pageItem == pageSize) {

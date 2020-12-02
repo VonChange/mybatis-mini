@@ -17,6 +17,8 @@
 package com.vonchange.jdbc.abstractjdbc.handler;
 
 import com.vonchange.jdbc.abstractjdbc.util.ConvertMap;
+import com.vonchange.mybatis.common.util.ConvertUtil;
+import com.vonchange.mybatis.tpl.clazz.ClazzUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -86,9 +88,13 @@ public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
         if (!rs.next()) {
             return results;
         }
+        boolean base=false;
+        if(ClazzUtils.isBaseType(type)){
+            base=true;
+        }
         T entity;
         do {
-            entity = ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
+            entity= base?ConvertUtil.toObject(rs.getObject(1),type):ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
             results.add(entity);
         } while (rs.next());
         return results;
