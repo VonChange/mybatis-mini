@@ -18,7 +18,7 @@
 		<dependency>
 			<groupId>com.vonchange.common</groupId>
 			<artifactId>mybatis-template</artifactId>
-			<version>1.8.5.0</version>
+			<version>1.8.6</version>
 		</dependency>
 		<dependency>
 			<groupId>com.vonchange.common</groupId>
