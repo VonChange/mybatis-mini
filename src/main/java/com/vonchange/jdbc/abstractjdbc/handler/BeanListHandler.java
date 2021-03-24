@@ -94,7 +94,7 @@ public class BeanListHandler<T> implements ResultSetExtractor<List<T>> {
         }
         T entity;
         do {
-            entity= base?ConvertUtil.toObject(rs.getObject(1),type):ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs)));
+            entity= (T) (base?ConvertUtil.toObject(rs.getObject(1),type):ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
             results.add(entity);
         } while (rs.next());
         return results;

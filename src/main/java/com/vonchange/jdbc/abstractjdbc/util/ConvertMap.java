@@ -2,11 +2,14 @@ package com.vonchange.jdbc.abstractjdbc.util;
 
 
 import com.vonchange.mybatis.common.util.ConvertUtil;
-import com.vonchange.mybatis.common.util.StringUtils;
+import com.vonchange.mybatis.config.Constant;
+import com.vonchange.mybatis.tpl.EntityUtil;
 import com.vonchange.mybatis.tpl.OrmUtil;
+import com.vonchange.mybatis.tpl.clazz.ClazzUtils;
 import com.vonchange.mybatis.tpl.exception.MybatisMinRuntimeException;
+import com.vonchange.mybatis.tpl.model.EntityField;
+import com.vonchange.mybatis.tpl.model.EntityInfo;
 
-import javax.persistence.Column;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -22,15 +25,19 @@ public class ConvertMap {
         throw new IllegalStateException("Utility class");
     }
 
-     public static  Map<String,Object> toMap(Class<?> clazz) throws IntrospectionException {
+     public static  <T> Map<String,Object> toMap(T entity,Class<?> clazz) throws IntrospectionException {
          BeanInfo beanInfo = Introspector.getBeanInfo(clazz);
          PropertyDescriptor[] propertyDescriptors =  beanInfo.getPropertyDescriptors();
          String propertyName;
          Object value;
          Map<String,Object> map = new HashMap<>();
          for (PropertyDescriptor property: propertyDescriptors) {
+             if(!ClazzUtils.isBaseType(property.getPropertyType())){
+                 continue;
+             }
              propertyName = property.getName();
-             value=property.getValue(propertyName);
+             value= Constant.BeanUtil.getProperty(entity, propertyName);
+                     //property.getValue(propertyName);
              map.put(propertyName,value);
          }
          return map;
@@ -51,39 +58,27 @@ public class ConvertMap {
                 throw new  MybatisMinRuntimeException("java.lang.InstantiationException "+type.getName()+" need no-arguments constructor");
             }
         }
-        BeanInfo beanInfo = Introspector.getBeanInfo(type);
-        if(null==map||map.isEmpty()){
-            return  entity;
-        }
-        PropertyDescriptor[] propertyDescriptors =  beanInfo.getPropertyDescriptors();
-        Class<?> propertyType;
-        String propertyName;
-        String fieldInEs;
-        Object value;
-        for (PropertyDescriptor property: propertyDescriptors) {
-            propertyName = property.getName();
-            propertyType=property.getPropertyType();
-            Column column;
-            try {
-                column = type.getDeclaredField(propertyName).getAnnotation(Column.class);
-            } catch (NoSuchFieldException e) {
-                column=null;
-            }
-            fieldInEs=propertyName;
-            if(null!=column&& StringUtils.isNotBlank(column.name())){
-                fieldInEs=column.name();
-            }
-            fieldInEs=fieldInEs.toLowerCase();
-            if (map.containsKey(fieldInEs)) {
-                // 下面一句可以 try 起来，这样当一个属性赋值失败的时候就不会影响其他属性赋值。
-                value = map.get(fieldInEs);
-                if(null==value){
-                    continue;
+        EntityInfo entityInfo = EntityUtil.getEntityInfo(type);
+        if(null!=entityInfo){
+            Map<String, EntityField> fieldInfoMap = entityInfo.getFieldMap();
+            for (Map.Entry<String,EntityField> entry:fieldInfoMap.entrySet()) {
+                String columnNameLower = entry.getValue().getColumnName().toLowerCase();
+                String fieldNameLower = entry.getValue().getFieldName().toLowerCase();
+                Object value = null;
+                if(map.containsKey(fieldNameLower)){
+                    value = map.get(fieldNameLower);
                 }
-                value= ConvertUtil.toObject(value,propertyType);
-                Method writeMethod = property.getWriteMethod();
-                writeMethod.invoke(entity,value);
+                if(map.containsKey(columnNameLower)){
+                    value = map.get(columnNameLower);
+                }
+                if (null!=value) {
+                    value = ConvertUtil.toObject(value, entry.getValue().getType());
+                    //Constant.BeanUtil.setProperty(entity,entry.getValue().getFieldName(),value);
+                    Method writeMethod = entry.getValue().getWriteMethod();
+                    writeMethod.invoke(entity, value);
+                }
             }
+            return entity;
         }
         return entity;
     }

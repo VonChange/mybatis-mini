@@ -4,21 +4,21 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>mybatis-mini</artifactId>
-	<version>1.8.6</version>
+	<version>1.8.7</version>
 	<packaging>jar</packaging>
 	<name>mybatis-mini</name>
 	<description>mybatis-mini</description>
 	<parent>
 		<groupId>com.vonchange.common</groupId>
 		<artifactId>parent-jar</artifactId>
-		<version>1.2</version>
+		<version>1.0.2</version>
 	</parent>
 
 	<dependencies>
 		<dependency>
 			<groupId>com.vonchange.common</groupId>
 			<artifactId>mybatis-template</artifactId>
-			<version>1.8.6</version>
+			<version>1.8.7</version>
 		</dependency>
 		<dependency>
 			<groupId>com.vonchange.common</groupId>

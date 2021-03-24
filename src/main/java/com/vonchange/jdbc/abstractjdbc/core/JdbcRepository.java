@@ -30,6 +30,7 @@ public interface JdbcRepository {
     List<Map<String, Object>> queryMapList(String sqlId, Map<String, Object> parameter);
     <T> int  insertBatch(List<T> entityList,int size);
     <T> int batchUpdate( String sqlId, List<T> entityList,int size);
+    <T> int  updateBatch(List<T> entityList,int size);
     <T> int insertBatchDuplicateKey(List<T> entityList,int size);
     //带 dataSource
     <T> List<T> queryList(DataSourceWrapper dataSourceWrapper,Class<T> type, String sqlId, Map<String, Object> parameter);
@@ -50,6 +51,7 @@ public interface JdbcRepository {
     Page<Map<String, Object>> queryMapPage(DataSourceWrapper dataSourceWrapper,String sqlId, Pageable pageable, Map<String, Object> parameter);
     List<Map<String, Object>> queryMapList(DataSourceWrapper dataSourceWrapper,String sqlId, Map<String, Object> parameter);
     <T> int  insertBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList,int size);
+    <T> int  updateBatch(DataSourceWrapper dataSourceWrapper,List<T> entityList,int size);
     <T> int batchUpdate(DataSourceWrapper dataSourceWrapper, String sqlId, List<T> entityList,int size);
     <T> Map<String, T> queryToMap(Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter);
     <T> Map<String, T> queryToMap(DataSourceWrapper dataSourceWrapper,Class<T> c, String sqlId, String keyInMap, Map<String, Object> parameter);

@@ -102,7 +102,7 @@ public class BigDataBeanListHandler<T> implements ResultSetExtractor<Integer> {
             base=true;
         }
         do {
-            result.add(base?ConvertUtil.toObject(rs.getObject(1),type):ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs))));
+            result.add((T) (base?ConvertUtil.toObject(rs.getObject(1),type):ConvertMap.convertMap(type,ConvertMap.newMap(HandlerUtil.rowToMap(rs)))));
             pageItem++;
             count++;
             if (pageItem == pageSize) {

@@ -23,7 +23,7 @@ public class SqlFill {
         if (null == obj) {
             return "NULL";
         }
-        if (obj instanceof String) {
+        if (obj instanceof String||obj.getClass().isEnum()) {
             // 排除恶意sql漏洞
             //return "'" + obj.toString().replaceAll("([';])+|(--)+", "") + "'";
             return "'" + obj.toString() + "'";

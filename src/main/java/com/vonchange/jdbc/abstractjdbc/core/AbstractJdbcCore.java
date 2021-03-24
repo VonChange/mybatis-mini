@@ -125,7 +125,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     public final <T> int insertBatch(DataSourceWrapper dataSourceWrapper, List<T> entityList,int batchSize) {
-        return insertBatch(null, entityList, false,batchSize);
+        return insertBatch(dataSourceWrapper, entityList, false,batchSize);
     }
 
     public final <T> int insertBatchDuplicateKey(List<T> entityList,int batchSize) {
@@ -135,7 +135,41 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     public final <T> int insertBatchDuplicateKey(DataSourceWrapper dataSourceWrapper, List<T> entityList,int batchSize) {
         return insertBatch(dataSourceWrapper, entityList, true,batchSize);
     }
-
+    public final <T> int updateBatch( List<T> entityList, int batchSize) {
+        return updateBatch(entityList,batchSize);
+    }
+    public final <T> int updateBatch(DataSourceWrapper dataSourceWrapper, List<T> entityList, int batchSize) {
+        if (null == entityList || entityList.isEmpty()) {
+            return 0;
+        }
+        SqlWithParam sqlParmeter = generateUpdateEntitySql(entityList.get(0), false);
+        String sql = sqlParmeter.getSql();
+        List<Object[]> list = new ArrayList<>();
+        int i = 0;
+        if(batchSize<=0){
+            batchSize=batchSize();
+        }
+        List<List<Object[]>> listSplit = new ArrayList<>();
+        for (T t : entityList) {
+            if (i != 0 && i % batchSize == 0) {
+                listSplit.add(list);
+                list = new ArrayList<>();
+            }
+            SqlWithParam sqlParameterItem = generateUpdateEntitySql(t, false);
+            list.add(sqlParameterItem.getParams());
+            i++;
+        }
+        if (!list.isEmpty()) {
+            listSplit.add(list);
+        }
+        int num=0;
+        for (List<Object[]> item : listSplit) {
+            int[] result = updateBatch(dataSourceWrapper, sql, item);
+            num+=result.length;
+            log.debug("\nupdateBatch {}", result);
+        }
+        return num;
+    }
     private <T> int insertBatch(DataSourceWrapper dataSourceWrapper, List<T> entityList, boolean duplicate,int batchSize) {
         if (null == entityList || entityList.isEmpty()) {
             return 0;
@@ -232,6 +266,9 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
             EntityField entityField = entry.getValue();
             if (Boolean.TRUE.equals(entityField.getIsColumn())) {
                 Object value = getPublicPro(entity, fieldName);
+                if(null!=value&&value.getClass().isEnum()){
+                    value=value.toString();
+                }
                 entityCuArrayList.add(new EntityCu(entityField, value, duplicate, false));
             }
         }
@@ -639,7 +676,8 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
 
         Map<String, Object> map = new LinkedHashMap<>();
         try {
-            map = ConvertMap.toMap(entityList.get(0).getClass());
+            T entity= entityList.get(0);
+            map = ConvertMap.toMap(entity,entity.getClass());
         } catch (IntrospectionException e) {
             log.error("IntrospectionException ", e);
         }
