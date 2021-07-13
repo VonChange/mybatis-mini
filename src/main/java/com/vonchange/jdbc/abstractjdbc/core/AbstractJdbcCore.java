@@ -61,7 +61,6 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
 
     protected abstract DataSourceWrapper getWriteDataSource();
 
-    protected abstract boolean needInitEntityInfo();
 
     protected abstract boolean readAllScopeOpen();
 
@@ -241,9 +240,7 @@ public abstract class AbstractJdbcCore implements JdbcRepository {
     }
 
     private void initEntityInfo(Class<?> clazz) {
-        if (needInitEntityInfo()) {
-            EntityUtil.initEntityInfo(clazz);
-        }
+        EntityUtil.initEntityInfo(clazz);
     }
 
     private static Object getPublicPro(Object bean, String name) {

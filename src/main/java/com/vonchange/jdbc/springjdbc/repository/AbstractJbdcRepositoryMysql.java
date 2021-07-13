@@ -18,10 +18,7 @@ public  abstract   class AbstractJbdcRepositoryMysql extends AbstractJdbcCore {
          return null;
     }
 
-    @Override
-    protected boolean needInitEntityInfo() {
-        return true;
-    }
+
     protected boolean  readAllScopeOpen(){
         return false;
     }
